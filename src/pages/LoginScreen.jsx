@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { loginUsuario } from "../services/api";
 import "../css/Login.css";
 import Footer from "../components/Footer";
 
@@ -34,54 +35,18 @@ const LoginScreen = () => {
     setError("");
 
     try {
-      const API_URL =
-        import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+      const data = await loginUsuario(formData.email.trim(), formData.password);
 
-      const response = await fetch(`${API_URL}/usuarios/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: formData.email.trim(),
-          password: formData.password,
-        }),
-      });
+      localStorage.setItem("isAuthenticated", "true");
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("email", formData.email.trim());
 
-      // Verificar si la respuesta es JSON antes de parsear
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error(
-          "Error del servidor. Por favor, contacte al administrador.",
-        );
-      }
-
-      const data = await response.json();
-
-      if (response.ok) {
-        // Guardar el token y la información del usuario
-        localStorage.setItem("isAuthenticated", "true");
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("email", formData.email.trim());
-
-        navigate("/");
-      } else {
-        setError(data.msg || "Usuario o contraseña incorrectos");
-      }
+      navigate("/");
     } catch (err) {
-      // Manejar diferentes tipos de errores
-      if (
-        err.message.includes("Failed to fetch") ||
-        err.message.includes("NetworkError")
-      ) {
-        setError(
-          "No se puede conectar con el servidor. Verifique su conexión a Internet.",
-        );
+      if (err.message.includes("Failed to fetch") || err.message.includes("NetworkError")) {
+        setError("No se puede conectar con el servidor. Verifique su conexión a Internet.");
       } else {
-        setError(
-          err.message ||
-            "Error al conectar con el servidor. Intente nuevamente.",
-        );
+        setError(err.message || "Usuario o contraseña incorrectos");
       }
       console.error("Error en login:", err);
     } finally {
