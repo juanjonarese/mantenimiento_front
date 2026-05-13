@@ -1,0 +1,119 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background-color: #eef0f4;
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 100vh;
+  color: #212529;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* ── Contenido centrado (formularios, lista, dashboard) ── */
+.pintura-content {
+  max-width: 580px;
+  margin: 0 auto;
+  background: #fff;
+  min-height: calc(100vh - 56px);
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+}
+
+@media (min-width: 768px) {
+  .pintura-content {
+    box-shadow: 0 4px 32px rgba(0, 0, 0, 0.09);
+    border-radius: 0 0 16px 16px;
+    margin-bottom: 32px;
+  }
+}
+
+/* ── Mejoras visuales de cards ── */
+.card {
+  border: 1px solid #e9ecef;
+  border-radius: 12px !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.card-header {
+  border-radius: 12px 12px 0 0 !important;
+  border-bottom: 1px solid #e9ecef;
+  background: #f8f9fa !important;
+}
+
+/* ── Inputs ── */
+.form-control,
+.form-select {
+  border-radius: 8px !important;
+  border-color: #dee2e6;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.12);
+}
+
+/* ── Botones: en desktop NO full-width salvo .w-100 explícito ── */
+@media (min-width: 576px) {
+  .btn-responsive {
+    width: auto !important;
+  }
+  .d-grid.gap-2 .btn {
+    border-radius: 10px !important;
+  }
+}
+
+/* ── Radio buttons estilo pill ── */
+.btn-check:checked + .btn-outline-secondary {
+  background-color: #6c757d;
+  color: #fff;
+  border-color: #6c757d;
+}
+.btn-check:checked + .btn-outline-primary {
+  background-color: #0d6efd;
+  color: #fff;
+}
+
+/* ── Navbar shadow ── */
+.navbar {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* ── Panel de gestión (office) ── */
+.panel-page {
+  min-height: calc(100vh - 56px);
+  background: #f8f9fa;
+}
+
+.panel-header {
+  position: sticky;
+  top: 56px;
+  z-index: 100;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+
+@media print {
+  .navbar, .panel-header .btn, .card-footer { display: none !important; }
+  .panel-page { background: white; }
+  .card { box-shadow: none !important; border: 1px solid #dee2e6 !important; }
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { display: inline-block; animation: spin 0.8s linear infinite; }
+
+/* ── Popup Leaflet ── */
+.leaflet-popup-content-wrapper {
+  border-radius: 10px !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15) !important;
+}
+.leaflet-popup-content {
+  margin: 12px 14px !important;
+}
