@@ -49,12 +49,12 @@ export default function PinturaNavbar() {
                 <span className="dropdown-item-text small text-muted">{email}</span>
               </li>
               <li><hr className="dropdown-divider my-1" /></li>
-              <li>
+              {/* <li>
                 <Link className="dropdown-item d-flex align-items-center gap-2" to="/usuarios">
                   <i className="bi bi-people"></i>Gestión de usuarios
                 </Link>
               </li>
-              <li><hr className="dropdown-divider my-1" /></li>
+              <li><hr className="dropdown-divider my-1" /></li> */}
               <li>
                 <button className="dropdown-item text-danger d-flex align-items-center gap-2" onClick={handleLogout}>
                   <i className="bi bi-box-arrow-right"></i>Cerrar sesión
