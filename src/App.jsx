@@ -1,6 +1,7 @@
 import React, { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import LoginScreen from "./pages/LoginScreen";
+import RegistroPage from "./pages/RegistroPage";
 import UsuariosPage from "./pages/UsuariosPage";
 import DashboardPage from "./pages/DashboardPage";
 import NuevoTrabajoPage from "./pages/NuevoTrabajoPage";
@@ -29,8 +30,9 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Pública */}
+        {/* Públicas */}
         <Route path="/login" element={<LoginScreen />} />
+        <Route path="/registro" element={<RegistroPage />} />
 
         {/* Pintura Vial - rutas principales */}
         <Route path="/" element={

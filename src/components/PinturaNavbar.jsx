@@ -25,7 +25,7 @@ export default function PinturaNavbar() {
   };
 
   return (
-    <nav className="navbar navbar-dark bg-primary sticky-top">
+    <nav className="navbar navbar-dark bg-success sticky-top">
       <div className="container" style={{ maxWidth: 580 }}>
         <Link className="navbar-brand fw-bold py-1 d-flex align-items-center gap-2" to="/">
           <i className="bi bi-brush-fill"></i>
@@ -47,6 +47,12 @@ export default function PinturaNavbar() {
             <ul className="dropdown-menu dropdown-menu-end shadow">
               <li>
                 <span className="dropdown-item-text small text-muted">{email}</span>
+              </li>
+              <li><hr className="dropdown-divider my-1" /></li>
+              <li>
+                <Link className="dropdown-item d-flex align-items-center gap-2" to="/usuarios">
+                  <i className="bi bi-people"></i>Gestión de usuarios
+                </Link>
               </li>
               <li><hr className="dropdown-divider my-1" /></li>
               <li>

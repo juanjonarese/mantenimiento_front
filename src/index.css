@@ -1,3 +1,11 @@
+/* Reemplaza el azul de Bootstrap por el verde de la marca */
+:root {
+  --bs-primary: #198754;
+  --bs-primary-rgb: 25, 135, 84;
+  --bs-link-color: #198754;
+  --bs-link-hover-color: #146c43;
+}
+
 *,
 *::before,
 *::after {
@@ -57,8 +65,8 @@ body {
 
 .form-control:focus,
 .form-select:focus {
-  border-color: #0d6efd;
-  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.12);
+  border-color: #198754;
+  box-shadow: 0 0 0 3px rgba(25, 135, 84, 0.15);
 }
 
 /* ── Botones: en desktop NO full-width salvo .w-100 explícito ── */
