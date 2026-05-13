@@ -19,11 +19,12 @@ const handleResponse = async (response, shouldRedirectOn401 = true) => {
   const data = await response.json();
 
   if (!response.ok) {
-    // Si el token expiró o es inválido, redirigir al login (excepto en login)
     if (response.status === 401 && shouldRedirectOn401) {
-      localStorage.clear();
-      // Usar replace para no crear entradas en el historial y evitar loops
-      window.location.replace("/login");
+      const isAuthenticated = localStorage.getItem("isAuthenticated") === "true";
+      if (isAuthenticated) {
+        localStorage.clear();
+        window.location.replace("/login");
+      }
     }
     throw new Error(data.msg || "Error en la petición");
   }

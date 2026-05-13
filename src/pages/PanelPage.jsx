@@ -168,8 +168,12 @@ export default function PanelPage() {
       <div className="container-fluid px-3 px-lg-4 py-3">
 
         {error && (
-          <div className="alert alert-danger d-flex align-items-center gap-2">
-            <i className="bi bi-exclamation-triangle"></i>{error}
+          <div className="alert alert-warning d-flex align-items-center gap-2">
+            <i className="bi bi-info-circle-fill"></i>
+            <div>
+              <strong>Panel no disponible sin sesión activa.</strong>
+              <span className="ms-1 small">Iniciá sesión para ver los datos del servidor.</span>
+            </div>
           </div>
         )}
 
