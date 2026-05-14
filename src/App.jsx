@@ -6,6 +6,7 @@ import ListaPage from "./pages/ListaPage";
 import DetallePage from "./pages/DetallePage";
 import PinturaNavbar from "./components/PinturaNavbar";
 import OfflineBadge from "./components/OfflineBadge";
+import LoginScreen from "./pages/LoginScreen";
 
 const MapaPage  = lazy(() => import("./pages/MapaPage"));
 const PanelPage = lazy(() => import("./pages/PanelPage"));
@@ -32,6 +33,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/login" element={<LoginScreen />} />
         <Route path="/" element={<Layout><DashboardPage /></Layout>} />
         <Route path="/nuevo" element={<Layout><NuevoTrabajoPage /></Layout>} />
         <Route path="/editar/:id" element={<Layout><NuevoTrabajoPage /></Layout>} />
