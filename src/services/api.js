@@ -6,6 +6,17 @@ async function handleResponse(response) {
   return data;
 }
 
+// ============= USUARIOS =============
+
+export const loginUsuario = async (email, password) => {
+  const response = await fetch(`${API_URL}/usuarios/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  return handleResponse(response);
+};
+
 // ============= TRABAJOS =============
 
 export const sincronizarTrabajos = async (trabajos) => {
