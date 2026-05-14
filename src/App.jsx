@@ -1,20 +1,22 @@
 import React, { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import LoginScreen from "./pages/LoginScreen";
-import RegistroPage from "./pages/RegistroPage";
-import UsuariosPage from "./pages/UsuariosPage";
 import DashboardPage from "./pages/DashboardPage";
 import NuevoTrabajoPage from "./pages/NuevoTrabajoPage";
 import ListaPage from "./pages/ListaPage";
 import DetallePage from "./pages/DetallePage";
-import ProtectedRoute from "./components/ProtectedRoute";
 import PinturaNavbar from "./components/PinturaNavbar";
 import OfflineBadge from "./components/OfflineBadge";
 
-const MapaPage   = lazy(() => import("./pages/MapaPage"));
-const PanelPage  = lazy(() => import("./pages/PanelPage"));
+const MapaPage  = lazy(() => import("./pages/MapaPage"));
+const PanelPage = lazy(() => import("./pages/PanelPage"));
 
-function PinturaLayout({ children, fullWidth = false }) {
+const Spinner = () => (
+  <div className="d-flex justify-content-center align-items-center" style={{ height: '60vh' }}>
+    <div className="spinner-border text-primary"></div>
+  </div>
+);
+
+function Layout({ children, fullWidth = false }) {
   return (
     <>
       <OfflineBadge />
@@ -30,72 +32,21 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Públicas */}
-        <Route path="/login" element={<LoginScreen />} />
-        <Route path="/registro" element={<RegistroPage />} />
-
-        {/* Pintura Vial - rutas principales */}
-        <Route path="/" element={
-          <ProtectedRoute>
-            <PinturaLayout><DashboardPage /></PinturaLayout>
-          </ProtectedRoute>
-        } />
-        <Route path="/nuevo" element={
-          <ProtectedRoute>
-            <PinturaLayout><NuevoTrabajoPage /></PinturaLayout>
-          </ProtectedRoute>
-        } />
-        <Route path="/editar/:id" element={
-          <ProtectedRoute>
-            <PinturaLayout><NuevoTrabajoPage /></PinturaLayout>
-          </ProtectedRoute>
-        } />
-        <Route path="/lista" element={
-          <ProtectedRoute>
-            <PinturaLayout><ListaPage /></PinturaLayout>
-          </ProtectedRoute>
-        } />
-        <Route path="/detalle/:id" element={
-          <ProtectedRoute>
-            <PinturaLayout><DetallePage /></PinturaLayout>
-          </ProtectedRoute>
-        } />
-
+        <Route path="/" element={<Layout><DashboardPage /></Layout>} />
+        <Route path="/nuevo" element={<Layout><NuevoTrabajoPage /></Layout>} />
+        <Route path="/editar/:id" element={<Layout><NuevoTrabajoPage /></Layout>} />
+        <Route path="/lista" element={<Layout><ListaPage /></Layout>} />
+        <Route path="/detalle/:id" element={<Layout><DetallePage /></Layout>} />
         <Route path="/mapa" element={
-          <ProtectedRoute>
-            <PinturaLayout fullWidth>
-              <Suspense fallback={
-                <div className="d-flex justify-content-center align-items-center" style={{ height: '60vh' }}>
-                  <div className="spinner-border text-primary"></div>
-                </div>
-              }>
-                <MapaPage />
-              </Suspense>
-            </PinturaLayout>
-          </ProtectedRoute>
+          <Layout fullWidth>
+            <Suspense fallback={<Spinner />}><MapaPage /></Suspense>
+          </Layout>
         } />
-
         <Route path="/panel" element={
-          <ProtectedRoute>
-            <PinturaLayout fullWidth>
-              <Suspense fallback={
-                <div className="d-flex justify-content-center align-items-center" style={{ height: '60vh' }}>
-                  <div className="spinner-border text-primary"></div>
-                </div>
-              }>
-                <PanelPage />
-              </Suspense>
-            </PinturaLayout>
-          </ProtectedRoute>
+          <Layout fullWidth>
+            <Suspense fallback={<Spinner />}><PanelPage /></Suspense>
+          </Layout>
         } />
-
-        {/* Admin - gestión de usuarios */}
-        <Route path="/usuarios" element={
-          <ProtectedRoute>
-            <UsuariosPage />
-          </ProtectedRoute>
-        } />
-
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

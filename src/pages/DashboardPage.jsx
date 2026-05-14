@@ -3,8 +3,6 @@ import { Link } from 'react-router-dom';
 import { obtenerTrabajos } from '../db/db';
 
 export default function DashboardPage() {
-  const email = localStorage.getItem('email') || '';
-  const nombreCorto = email.split('@')[0];
   const [stats, setStats] = useState({
     total: 0,
     finalizados: 0,
@@ -28,7 +26,7 @@ export default function DashboardPage() {
   return (
     <div className="container-fluid p-3">
       <div className="mb-3">
-        <h5 className="fw-bold mb-0">Hola, {nombreCorto}</h5>
+        <h5 className="fw-bold mb-0">Pintura Vial</h5>
         <small className="text-muted">
           {new Date().toLocaleDateString('es-AR', {
             weekday: 'long', day: 'numeric', month: 'long',

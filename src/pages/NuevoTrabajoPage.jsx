@@ -28,7 +28,7 @@ export default function NuevoTrabajoPage() {
   const [errorForm, setErrorForm] = useState('');
   const fileRef = useRef();
   const esEdicion = Boolean(id);
-  const esAdmin = localStorage.getItem('rol') === 'admin';
+  const esAdmin = true;
 
   useEffect(() => {
     if (id) {
@@ -137,7 +137,7 @@ export default function NuevoTrabajoPage() {
         id: esEdicion ? Number(id) : Date.now(),
         fechaCarga: esEdicion ? trabajoBase.fechaCarga : new Date().toISOString(),
         fechaModificacion: esEdicion ? new Date().toISOString() : undefined,
-        usuario: localStorage.getItem('email') || '',
+        usuario: '',
         lat: parseFloat(form.lat),
         lng: parseFloat(form.lng),
         calle1: form.calle1.trim(),
