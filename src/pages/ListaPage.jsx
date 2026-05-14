@@ -70,7 +70,7 @@ export default function ListaPage() {
                   <div className="flex-grow-1 me-2">
                     <div className="fw-semibold">{t.calle1} y {t.calle2}</div>
                     <div className="small text-muted mb-1">
-                      {t.tipoTrabajo} · {t.superficie} m²
+                      {t.items ? t.items.map((i) => i.tipoTrabajo).join(' + ') : t.tipoTrabajo} · {t.superficie} m²
                     </div>
                     <div className="small text-muted mb-2">
                       {new Date(t.fechaCarga).toLocaleString('es-AR', {

@@ -40,6 +40,7 @@ const LoginScreen = () => {
       localStorage.setItem("isAuthenticated", "true");
       localStorage.setItem("token", data.token);
       localStorage.setItem("email", formData.email.trim());
+      localStorage.setItem("rol", data.rol || "operario");
 
       navigate("/");
     } catch (err) {

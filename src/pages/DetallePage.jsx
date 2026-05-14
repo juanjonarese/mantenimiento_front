@@ -89,35 +89,58 @@ export default function DetallePage() {
           <i className="bi bi-tools me-1"></i> Trabajo
         </div>
         <div className="card-body">
-          <div className="mb-2">
-            <span className="badge bg-primary fs-6">{trabajo.tipoTrabajo}</span>
-          </div>
-          <div className="row text-center g-2 mb-2">
-            <div className="col-4">
-              <div className="bg-light rounded p-2">
-                <div className="fw-bold">{trabajo.largo} m</div>
-                <div className="small text-muted">Largo</div>
+          {(trabajo.items || [{ tipoTrabajo: trabajo.tipoTrabajo, largo: trabajo.largo, ancho: trabajo.ancho, cantidad: trabajo.cantidad, superficie: trabajo.superficie }]).map((item, idx, arr) => (
+            <div key={idx} className={idx > 0 ? 'border-top pt-2 mt-2' : ''}>
+              <div className="mb-2">
+                <span className="badge bg-primary">{item.tipoTrabajo}</span>
               </div>
-            </div>
-            <div className="col-4">
-              <div className="bg-light rounded p-2">
-                <div className="fw-bold">{trabajo.ancho} m</div>
-                <div className="small text-muted">Ancho</div>
+              <div className="row text-center g-2 mb-1">
+                <div className="col-4">
+                  <div className="bg-light rounded p-2">
+                    <div className="fw-bold">{item.largo} m</div>
+                    <div className="small text-muted">Largo</div>
+                  </div>
+                </div>
+                <div className="col-4">
+                  <div className="bg-light rounded p-2">
+                    <div className="fw-bold">{item.ancho} m</div>
+                    <div className="small text-muted">Ancho</div>
+                  </div>
+                </div>
+                <div className="col-4">
+                  <div className="bg-light rounded p-2">
+                    <div className="fw-bold">{item.cantidad}</div>
+                    <div className="small text-muted">Cantidad</div>
+                  </div>
+                </div>
               </div>
+              {arr.length > 1 && item.superficie > 0 && (
+                <div className="text-end small text-muted">{item.superficie} m²</div>
+              )}
             </div>
-            <div className="col-4">
-              <div className="bg-light rounded p-2">
-                <div className="fw-bold">{trabajo.cantidad}</div>
-                <div className="small text-muted">Cantidad</div>
-              </div>
-            </div>
-          </div>
-          <div className="alert alert-info text-center py-2 mb-0">
+          ))}
+          <div className="alert alert-info text-center py-2 mb-0 mt-2">
             <strong className="fs-4">{trabajo.superficie} m²</strong>
             <div className="small">superficie total</div>
           </div>
         </div>
       </div>
+
+      {trabajo.materiales?.length > 0 && (
+        <div className="card mb-3">
+          <div className="card-header bg-light fw-semibold small">
+            <i className="bi bi-box-seam me-1"></i> Material utilizado
+          </div>
+          <div className="card-body p-0">
+            {trabajo.materiales.map((m, i) => (
+              <div key={i} className="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
+                <span>{m.nombre}</span>
+                <span className="fw-bold text-primary">{m.cantidad} {m.unidad}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {trabajo.fotos?.length > 0 && (
         <div className="card mb-3">

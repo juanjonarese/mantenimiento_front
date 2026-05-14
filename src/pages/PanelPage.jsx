@@ -88,7 +88,9 @@ export default function PanelPage() {
 
   const porTipo = TIPOS_TRABAJO.map((tipo) => ({
     name: tipo,
-    value: trabajos.filter((t) => t.tipoTrabajo === tipo).length,
+    value: trabajos.filter((t) =>
+      t.items ? t.items.some((i) => i.tipoTrabajo === tipo) : t.tipoTrabajo === tipo
+    ).length,
   })).filter((d) => d.value > 0);
 
   const porEstado = [
@@ -111,13 +113,11 @@ export default function PanelPage() {
       Usuario: t.usuario,
       'Calle 1': t.calle1,
       'Calle 2': t.calle2,
-      Tipo: t.tipoTrabajo,
-      'Largo (m)': t.largo,
-      'Ancho (m)': t.ancho,
-      Cantidad: t.cantidad,
+      Tipos: t.items ? t.items.map((i) => i.tipoTrabajo).join(', ') : (t.tipoTrabajo || ''),
       'Superficie (m²)': t.superficie,
       'Estado operativo': t.estadoOperativo,
       Certificación: t.estadoAdmin,
+      Materiales: t.materiales?.map((m) => `${m.nombre}: ${m.cantidad} ${m.unidad}`).join(' | ') || '',
       Latitud: t.lat,
       Longitud: t.lng,
       Observaciones: t.observaciones || '',
@@ -177,15 +177,76 @@ export default function PanelPage() {
           </div>
         )}
 
+        {/* ── FILTROS ── */}
+        <div className="card mb-4">
+          <div className="card-header fw-semibold small d-flex justify-content-between align-items-center">
+            <span><i className="bi bi-funnel me-1"></i>Filtros</span>
+            {hayFiltros && (
+              <button className="btn btn-sm btn-outline-secondary py-0" onClick={limpiarFiltros}>
+                <i className="bi bi-x me-1"></i>Limpiar
+              </button>
+            )}
+          </div>
+          <div className="card-body">
+            <div className="row g-2">
+              <div className="col-6 col-md-3 col-lg-2">
+                <label className="form-label small fw-semibold mb-1">Desde</label>
+                <input type="date" className="form-control form-control-sm" name="desde"
+                  value={filtros.desde} onChange={handleFiltro} />
+              </div>
+              <div className="col-6 col-md-3 col-lg-2">
+                <label className="form-label small fw-semibold mb-1">Hasta</label>
+                <input type="date" className="form-control form-control-sm" name="hasta"
+                  value={filtros.hasta} onChange={handleFiltro} />
+              </div>
+              <div className="col-6 col-md-3 col-lg-2">
+                <label className="form-label small fw-semibold mb-1">Usuario</label>
+                <select className="form-select form-select-sm" name="usuario"
+                  value={filtros.usuario} onChange={handleFiltro}>
+                  <option value="">Todos</option>
+                  {usuarios.map((u) => <option key={u}>{u}</option>)}
+                </select>
+              </div>
+              <div className="col-6 col-md-3 col-lg-2">
+                <label className="form-label small fw-semibold mb-1">Tipo</label>
+                <select className="form-select form-select-sm" name="tipoTrabajo"
+                  value={filtros.tipoTrabajo} onChange={handleFiltro}>
+                  <option value="">Todos</option>
+                  {TIPOS_TRABAJO.map((t) => <option key={t}>{t}</option>)}
+                </select>
+              </div>
+              <div className="col-6 col-md-3 col-lg-2">
+                <label className="form-label small fw-semibold mb-1">Estado op.</label>
+                <select className="form-select form-select-sm" name="estadoOperativo"
+                  value={filtros.estadoOperativo} onChange={handleFiltro}>
+                  <option value="">Todos</option>
+                  <option>Sin iniciar</option>
+                  <option>En proceso</option>
+                  <option>Finalizado</option>
+                </select>
+              </div>
+              <div className="col-6 col-md-3 col-lg-2">
+                <label className="form-label small fw-semibold mb-1">Certificación</label>
+                <select className="form-select form-select-sm" name="estadoAdmin"
+                  value={filtros.estadoAdmin} onChange={handleFiltro}>
+                  <option value="">Todas</option>
+                  <option>Sin certificar</option>
+                  <option>Certificado</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* ── STATS ── */}
         <div className="row g-3 mb-4">
-          <StatCard label="Total trabajos" value={estadisticas?.total ?? '—'} icon="collection" color="primary" />
+          <StatCard label="Total trabajos" value={trabajos.length} icon="collection" color="primary" />
           <StatCard label="Superficie total" value={`${superficieTotal.toFixed(0)} m²`} icon="rulers" color="info" />
-          <StatCard label="Finalizados" value={estadisticas?.finalizados ?? '—'} icon="check-circle" color="success" />
-          <StatCard label="En proceso" value={estadisticas?.enProceso ?? '—'} icon="hourglass-split" color="warning" />
-          <StatCard label="Sin iniciar" value={estadisticas?.sinIniciar ?? '—'} icon="pause-circle" color="danger" />
-          <StatCard label="Certificados" value={estadisticas?.certificados ?? '—'} icon="patch-check" color="primary"
-            sub={`${estadisticas?.sinCertificar ?? '—'} sin certificar`} />
+          <StatCard label="Finalizados" value={trabajos.filter((t) => t.estadoOperativo === 'Finalizado').length} icon="check-circle" color="success" />
+          <StatCard label="En proceso" value={trabajos.filter((t) => t.estadoOperativo === 'En proceso').length} icon="hourglass-split" color="warning" />
+          <StatCard label="Sin iniciar" value={trabajos.filter((t) => t.estadoOperativo === 'Sin iniciar').length} icon="pause-circle" color="danger" />
+          <StatCard label="Certificados" value={trabajos.filter((t) => t.estadoAdmin === 'Certificado').length} icon="patch-check" color="primary"
+            sub={`${trabajos.filter((t) => t.estadoAdmin !== 'Certificado').length} sin certificar`} />
         </div>
 
         {/* ── GRÁFICOS ── */}
@@ -314,67 +375,6 @@ export default function PanelPage() {
           </div>
         </div>
 
-        {/* ── FILTROS ── */}
-        <div className="card mb-3">
-          <div className="card-header fw-semibold small d-flex justify-content-between align-items-center">
-            <span><i className="bi bi-funnel me-1"></i>Filtros</span>
-            {hayFiltros && (
-              <button className="btn btn-sm btn-outline-secondary py-0" onClick={limpiarFiltros}>
-                <i className="bi bi-x me-1"></i>Limpiar
-              </button>
-            )}
-          </div>
-          <div className="card-body">
-            <div className="row g-2">
-              <div className="col-6 col-md-3 col-lg-2">
-                <label className="form-label small fw-semibold mb-1">Desde</label>
-                <input type="date" className="form-control form-control-sm" name="desde"
-                  value={filtros.desde} onChange={handleFiltro} />
-              </div>
-              <div className="col-6 col-md-3 col-lg-2">
-                <label className="form-label small fw-semibold mb-1">Hasta</label>
-                <input type="date" className="form-control form-control-sm" name="hasta"
-                  value={filtros.hasta} onChange={handleFiltro} />
-              </div>
-              <div className="col-6 col-md-3 col-lg-2">
-                <label className="form-label small fw-semibold mb-1">Usuario</label>
-                <select className="form-select form-select-sm" name="usuario"
-                  value={filtros.usuario} onChange={handleFiltro}>
-                  <option value="">Todos</option>
-                  {usuarios.map((u) => <option key={u}>{u}</option>)}
-                </select>
-              </div>
-              <div className="col-6 col-md-3 col-lg-2">
-                <label className="form-label small fw-semibold mb-1">Tipo</label>
-                <select className="form-select form-select-sm" name="tipoTrabajo"
-                  value={filtros.tipoTrabajo} onChange={handleFiltro}>
-                  <option value="">Todos</option>
-                  {TIPOS_TRABAJO.map((t) => <option key={t}>{t}</option>)}
-                </select>
-              </div>
-              <div className="col-6 col-md-3 col-lg-2">
-                <label className="form-label small fw-semibold mb-1">Estado op.</label>
-                <select className="form-select form-select-sm" name="estadoOperativo"
-                  value={filtros.estadoOperativo} onChange={handleFiltro}>
-                  <option value="">Todos</option>
-                  <option>Sin iniciar</option>
-                  <option>En proceso</option>
-                  <option>Finalizado</option>
-                </select>
-              </div>
-              <div className="col-6 col-md-3 col-lg-2">
-                <label className="form-label small fw-semibold mb-1">Certificación</label>
-                <select className="form-select form-select-sm" name="estadoAdmin"
-                  value={filtros.estadoAdmin} onChange={handleFiltro}>
-                  <option value="">Todas</option>
-                  <option>Sin certificar</option>
-                  <option>Certificado</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* ── TABLA ── */}
         <div className="card">
           <div className="card-header fw-semibold small d-flex justify-content-between align-items-center">
@@ -423,7 +423,7 @@ export default function PanelPage() {
                           })}
                         </td>
                         <td className="small fw-semibold">{t.calle1} y {t.calle2}</td>
-                        <td className="small">{t.tipoTrabajo}</td>
+                        <td className="small">{t.items ? t.items.map((i) => i.tipoTrabajo).join(', ') : t.tipoTrabajo}</td>
                         <td className="small text-end fw-bold text-primary">{t.superficie}</td>
                         <td>
                           <span className={`badge bg-${COLORES_ESTADO_OP[t.estadoOperativo]}`} style={{ fontSize: 11 }}>

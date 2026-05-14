@@ -4,11 +4,17 @@ import { guardarTrabajo, obtenerTrabajoPorId } from '../db/db';
 import { useGPS } from '../hooks/useGPS';
 import { TIPOS_TRABAJO, ESTADOS_OPERATIVO, ESTADOS_ADMIN } from '../constants';
 
+const ITEM_VACIO = { tipoTrabajo: '', largo: '', ancho: '', cantidad: '' };
+const MATERIAL_VACIO = { nombre: '', cantidad: '', unidad: 'litros' };
+const NOMBRES_MATERIAL = ['Pintura blanca', 'Pintura amarilla', 'Microesferas', 'Diluyente', 'Termoplástico', 'Otros'];
+const UNIDADES_MATERIAL = ['litros', 'kg', 'unidades', 'm²'];
+
 const FORM_VACIO = {
   calle1: '', calle2: '', lat: '', lng: '',
-  tipoTrabajo: '', largo: '', ancho: '', cantidad: '',
+  items: [{ ...ITEM_VACIO }],
   estadoOperativo: 'Sin iniciar', estadoAdmin: 'Sin certificar',
   observaciones: '', linkDrive: '', linkMyMaps: '',
+  materiales: [],
 };
 
 export default function NuevoTrabajoPage() {
@@ -22,6 +28,7 @@ export default function NuevoTrabajoPage() {
   const [errorForm, setErrorForm] = useState('');
   const fileRef = useRef();
   const esEdicion = Boolean(id);
+  const esAdmin = localStorage.getItem('rol') === 'admin';
 
   useEffect(() => {
     if (id) {
@@ -30,26 +37,62 @@ export default function NuevoTrabajoPage() {
         setForm({
           calle1: t.calle1, calle2: t.calle2,
           lat: t.lat, lng: t.lng,
-          tipoTrabajo: t.tipoTrabajo, largo: t.largo,
-          ancho: t.ancho, cantidad: t.cantidad,
+          items: t.items || [{ tipoTrabajo: t.tipoTrabajo || '', largo: String(t.largo || ''), ancho: String(t.ancho || ''), cantidad: String(t.cantidad || '') }],
           estadoOperativo: t.estadoOperativo, estadoAdmin: t.estadoAdmin,
           observaciones: t.observaciones || '',
           linkDrive: t.linkDrive || '', linkMyMaps: t.linkMyMaps || '',
+          materiales: t.materiales || [],
         });
         setFotosExistentes(t.fotos || []);
+      });
+    } else {
+      obtenerUbicacion().then((pos) => {
+        if (pos) setForm((prev) => ({ ...prev, lat: pos.lat.toFixed(6), lng: pos.lng.toFixed(6) }));
       });
     }
   }, [id]);
 
-  const superficie = (() => {
-    const l = parseFloat(form.largo) || 0;
-    const a = parseFloat(form.ancho) || 0;
-    const c = parseFloat(form.cantidad) || 0;
-    return (l * a * c).toFixed(2);
-  })();
+  const superficieTotal = form.items.reduce((sum, item) => {
+    const l = parseFloat(item.largo) || 0;
+    const a = parseFloat(item.ancho) || 0;
+    const c = parseFloat(item.cantidad) || 0;
+    return sum + l * a * c;
+  }, 0).toFixed(2);
 
   function handleChange(e) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  }
+
+  function handleItemChange(idx, e) {
+    const { name, value } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      items: prev.items.map((item, i) => i === idx ? { ...item, [name]: value } : item),
+    }));
+  }
+
+  function agregarItem() {
+    setForm((prev) => ({ ...prev, items: [...prev.items, { ...ITEM_VACIO }] }));
+  }
+
+  function eliminarItem(idx) {
+    setForm((prev) => ({ ...prev, items: prev.items.filter((_, i) => i !== idx) }));
+  }
+
+  function handleMaterialChange(idx, e) {
+    const { name, value } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      materiales: prev.materiales.map((m, i) => i === idx ? { ...m, [name]: value } : m),
+    }));
+  }
+
+  function agregarMaterial() {
+    setForm((prev) => ({ ...prev, materiales: [...prev.materiales, { ...MATERIAL_VACIO }] }));
+  }
+
+  function eliminarMaterial(idx) {
+    setForm((prev) => ({ ...prev, materiales: prev.materiales.filter((_, i) => i !== idx) }));
   }
 
   async function handleGPS() {
@@ -76,13 +119,20 @@ export default function NuevoTrabajoPage() {
     e.preventDefault();
     setErrorForm('');
     if (!form.calle1 || !form.calle2) return setErrorForm('Ingresá las dos calles de la intersección');
-    if (!form.tipoTrabajo) return setErrorForm('Seleccioná el tipo de trabajo');
-    if (!form.largo || !form.ancho || !form.cantidad) return setErrorForm('Completá las medidas');
+    if (form.items.length === 0) return setErrorForm('Agregá al menos un tipo de trabajo');
+    if (form.items.some((i) => !i.tipoTrabajo)) return setErrorForm('Seleccioná el tipo para cada trabajo');
+    if (form.items.some((i) => !i.largo || !i.ancho || !i.cantidad)) return setErrorForm('Completá las medidas de cada trabajo');
     if (!form.lat || !form.lng) return setErrorForm('Tomá la ubicación GPS o ingresala manualmente');
 
     setGuardando(true);
     try {
       const trabajoBase = esEdicion ? await obtenerTrabajoPorId(Number(id)) : {};
+      const itemsCalculados = form.items.map((item) => {
+        const l = parseFloat(item.largo) || 0;
+        const a = parseFloat(item.ancho) || 0;
+        const c = parseFloat(item.cantidad) || 0;
+        return { tipoTrabajo: item.tipoTrabajo, largo: l, ancho: a, cantidad: c, superficie: parseFloat((l * a * c).toFixed(2)) };
+      });
       const trabajo = {
         id: esEdicion ? Number(id) : Date.now(),
         fechaCarga: esEdicion ? trabajoBase.fechaCarga : new Date().toISOString(),
@@ -92,16 +142,14 @@ export default function NuevoTrabajoPage() {
         lng: parseFloat(form.lng),
         calle1: form.calle1.trim(),
         calle2: form.calle2.trim(),
-        tipoTrabajo: form.tipoTrabajo,
-        largo: parseFloat(form.largo),
-        ancho: parseFloat(form.ancho),
-        cantidad: parseFloat(form.cantidad),
-        superficie: parseFloat(superficie),
+        items: itemsCalculados,
+        superficie: parseFloat(superficieTotal),
         estadoOperativo: form.estadoOperativo,
         estadoAdmin: form.estadoAdmin,
         observaciones: form.observaciones,
         linkDrive: form.linkDrive,
         linkMyMaps: form.linkMyMaps,
+        materiales: form.materiales.map((m) => ({ nombre: m.nombre, cantidad: parseFloat(m.cantidad) || 0, unidad: m.unidad })),
         fotos: [...fotosExistentes, ...fotos],
         sincronizado: false,
       };
@@ -132,7 +180,7 @@ export default function NuevoTrabajoPage() {
               onClick={handleGPS} disabled={cargandoGPS}>
               {cargandoGPS
                 ? <><span className="spinner-border spinner-border-sm me-2"></span>Obteniendo GPS...</>
-                : <><i className="bi bi-crosshair me-2"></i>Tomar ubicación GPS</>}
+                : <><i className="bi bi-crosshair me-2"></i>Actualizar GPS</>}
             </button>
             {errorGPS && <div className="alert alert-danger py-1 small">{errorGPS}</div>}
             <div className="row g-2 mb-3">
@@ -170,39 +218,99 @@ export default function NuevoTrabajoPage() {
 
         {/* TRABAJO */}
         <div className="card mb-3">
-          <div className="card-header bg-light fw-semibold small">
-            <i className="bi bi-tools me-1"></i> Trabajo
+          <div className="card-header bg-light fw-semibold small d-flex justify-content-between align-items-center">
+            <span><i className="bi bi-tools me-1"></i> Trabajo</span>
+            <button type="button" className="btn btn-sm btn-outline-primary py-0 px-2"
+              onClick={agregarItem}>
+              <i className="bi bi-plus-lg me-1"></i>Agregar tipo
+            </button>
           </div>
           <div className="card-body">
-            <div className="mb-3">
-              <label className="form-label small fw-semibold">Tipo de trabajo *</label>
-              <select className="form-select" name="tipoTrabajo"
-                value={form.tipoTrabajo} onChange={handleChange}>
-                <option value="">Seleccioná...</option>
-                {TIPOS_TRABAJO.map((t) => <option key={t}>{t}</option>)}
-              </select>
-            </div>
-            <div className="row g-2 mb-2">
-              <div className="col-4">
-                <label className="form-label small fw-semibold">Largo (m) *</label>
-                <input type="number" step="any" min="0" className="form-control"
-                  name="largo" value={form.largo} onChange={handleChange} placeholder="0" />
+            {form.items.map((item, idx) => (
+              <div key={idx} className={idx > 0 ? 'border-top pt-3 mt-3' : ''}>
+                {form.items.length > 1 && (
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <span className="small fw-semibold text-muted">Tipo {idx + 1}</span>
+                    <button type="button" className="btn btn-sm btn-outline-danger py-0 px-2"
+                      onClick={() => eliminarItem(idx)}>
+                      <i className="bi bi-x-lg"></i>
+                    </button>
+                  </div>
+                )}
+                <div className="mb-3">
+                  <label className="form-label small fw-semibold">Tipo de trabajo *</label>
+                  <select className="form-select" name="tipoTrabajo"
+                    value={item.tipoTrabajo} onChange={(e) => handleItemChange(idx, e)}>
+                    <option value="">Seleccioná...</option>
+                    {TIPOS_TRABAJO.map((t) => <option key={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div className="row g-2 mb-1">
+                  <div className="col-4">
+                    <label className="form-label small fw-semibold">Largo (m) *</label>
+                    <input type="number" step="any" min="0" className="form-control"
+                      name="largo" value={item.largo} onChange={(e) => handleItemChange(idx, e)} placeholder="0" />
+                  </div>
+                  <div className="col-4">
+                    <label className="form-label small fw-semibold">Ancho (m) *</label>
+                    <input type="number" step="any" min="0" className="form-control"
+                      name="ancho" value={item.ancho} onChange={(e) => handleItemChange(idx, e)} placeholder="0" />
+                  </div>
+                  <div className="col-4">
+                    <label className="form-label small fw-semibold">Cantidad *</label>
+                    <input type="number" step="any" min="0" className="form-control"
+                      name="cantidad" value={item.cantidad} onChange={(e) => handleItemChange(idx, e)} placeholder="0" />
+                  </div>
+                </div>
+                {form.items.length > 1 && (() => {
+                  const s = (parseFloat(item.largo) || 0) * (parseFloat(item.ancho) || 0) * (parseFloat(item.cantidad) || 0);
+                  return s > 0 ? <div className="text-end small text-muted mt-1">{s.toFixed(2)} m²</div> : null;
+                })()}
               </div>
-              <div className="col-4">
-                <label className="form-label small fw-semibold">Ancho (m) *</label>
-                <input type="number" step="any" min="0" className="form-control"
-                  name="ancho" value={form.ancho} onChange={handleChange} placeholder="0" />
-              </div>
-              <div className="col-4">
-                <label className="form-label small fw-semibold">Cantidad *</label>
-                <input type="number" step="any" min="0" className="form-control"
-                  name="cantidad" value={form.cantidad} onChange={handleChange} placeholder="0" />
-              </div>
+            ))}
+            <div className="alert alert-info py-2 text-center mt-3 mb-0">
+              <strong className="fs-5">{superficieTotal} m²</strong>
+              <div className="small text-muted">superficie total</div>
             </div>
-            <div className="alert alert-info py-2 text-center">
-              <strong className="fs-5">{superficie} m²</strong>
-              <div className="small text-muted">superficie calculada</div>
-            </div>
+          </div>
+        </div>
+
+        {/* MATERIAL UTILIZADO */}
+        <div className="card mb-3">
+          <div className="card-header bg-light fw-semibold small d-flex justify-content-between align-items-center">
+            <span><i className="bi bi-box-seam me-1"></i> Material utilizado</span>
+            <button type="button" className="btn btn-sm btn-outline-primary py-0 px-2"
+              onClick={agregarMaterial}>
+              <i className="bi bi-plus-lg me-1"></i>Agregar
+            </button>
+          </div>
+          <div className="card-body">
+            {form.materiales.length === 0 ? (
+              <div className="text-center text-muted small py-2">
+                Sin materiales — usá "Agregar" para registrar
+              </div>
+            ) : (
+              form.materiales.map((mat, idx) => (
+                <div key={idx} className="d-flex gap-2 align-items-center mb-2">
+                  <select className="form-select form-select-sm flex-grow-1"
+                    name="nombre" value={mat.nombre} onChange={(e) => handleMaterialChange(idx, e)}>
+                    <option value="">Material...</option>
+                    {NOMBRES_MATERIAL.map((n) => <option key={n}>{n}</option>)}
+                  </select>
+                  <input type="number" step="any" min="0" className="form-control form-control-sm"
+                    style={{ width: 75 }} name="cantidad" value={mat.cantidad}
+                    onChange={(e) => handleMaterialChange(idx, e)} placeholder="Cant." />
+                  <select className="form-select form-select-sm" style={{ width: 90 }}
+                    name="unidad" value={mat.unidad} onChange={(e) => handleMaterialChange(idx, e)}>
+                    {UNIDADES_MATERIAL.map((u) => <option key={u}>{u}</option>)}
+                  </select>
+                  <button type="button" className="btn btn-sm btn-outline-danger py-0 px-2"
+                    onClick={() => eliminarMaterial(idx)}>
+                    <i className="bi bi-x-lg"></i>
+                  </button>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -212,7 +320,7 @@ export default function NuevoTrabajoPage() {
             <i className="bi bi-flag me-1"></i> Estados
           </div>
           <div className="card-body">
-            <div className="mb-3">
+            <div className={esAdmin ? 'mb-3' : ''}>
               <label className="form-label small fw-semibold">Estado operativo</label>
               <div className="d-flex gap-2 flex-wrap">
                 {ESTADOS_OPERATIVO.map((e) => (
@@ -225,19 +333,21 @@ export default function NuevoTrabajoPage() {
                 ))}
               </div>
             </div>
-            <div>
-              <label className="form-label small fw-semibold">Certificación</label>
-              <div className="d-flex gap-2 flex-wrap">
-                {ESTADOS_ADMIN.map((e) => (
-                  <div key={e}>
-                    <input type="radio" className="btn-check" name="estadoAdmin"
-                      id={`adm-${e}`} value={e}
-                      checked={form.estadoAdmin === e} onChange={handleChange} />
-                    <label className="btn btn-sm btn-outline-secondary" htmlFor={`adm-${e}`}>{e}</label>
-                  </div>
-                ))}
+            {esAdmin && (
+              <div>
+                <label className="form-label small fw-semibold">Certificación</label>
+                <div className="d-flex gap-2 flex-wrap">
+                  {ESTADOS_ADMIN.map((e) => (
+                    <div key={e}>
+                      <input type="radio" className="btn-check" name="estadoAdmin"
+                        id={`adm-${e}`} value={e}
+                        checked={form.estadoAdmin === e} onChange={handleChange} />
+                      <label className="btn btn-sm btn-outline-secondary" htmlFor={`adm-${e}`}>{e}</label>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
