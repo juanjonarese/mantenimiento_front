@@ -37,7 +37,8 @@ export async function eliminarTrabajo(id) {
 
 export async function obtenerNoSincronizados() {
   const db = await getDB();
-  return db.getAllFromIndex(STORE, 'sincronizado', false);
+  const todos = await db.getAll(STORE);
+  return todos.filter((t) => !t.sincronizado);
 }
 
 export async function marcarSincronizado(id) {
