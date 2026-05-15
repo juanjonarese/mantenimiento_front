@@ -47,6 +47,8 @@ export default function NuevoTrabajoPage() {
   const [fotosExistentes, setFotosExistentes] = useState([]);
   const [guardando, setGuardando] = useState(false);
   const [errorForm, setErrorForm] = useState('');
+  const [mapaListo, setMapaListo] = useState(false);
+  const mapaKeyRef = useRef('default');
   const fileRef = useRef();
   const esEdicion = Boolean(id);
   const esAdmin = true;
@@ -65,10 +67,17 @@ export default function NuevoTrabajoPage() {
           materiales: t.materiales || [],
         });
         setFotosExistentes(t.fotos || []);
+        setMapaListo(true);
       });
     } else {
       obtenerUbicacion().then((pos) => {
-        if (pos) setForm((prev) => ({ ...prev, lat: pos.lat.toFixed(6), lng: pos.lng.toFixed(6) }));
+        if (pos) {
+          const lat = pos.lat.toFixed(6);
+          const lng = pos.lng.toFixed(6);
+          mapaKeyRef.current = `${lat},${lng}`;
+          setForm((prev) => ({ ...prev, lat, lng }));
+        }
+        setMapaListo(true);
       });
     }
   }, [id]);
@@ -206,37 +215,45 @@ export default function NuevoTrabajoPage() {
             {errorGPS && !gpsBloqueado && (
               <div className="alert alert-danger py-1 small mb-3">{errorGPS}</div>
             )}
-            <div style={{ height: 260, borderRadius: 8, overflow: 'hidden', marginBottom: 8 }}>
-              <MapContainer
-                center={[parseFloat(form.lat) || -34.6037, parseFloat(form.lng) || -58.3816]}
-                zoom={16}
-                style={{ height: '100%', width: '100%' }}
-                scrollWheelZoom={false}
-              >
-                <TileLayer
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  attribution='&copy; OpenStreetMap'
-                />
-                <Marker
-                  position={[parseFloat(form.lat) || -34.6037, parseFloat(form.lng) || -58.3816]}
-                  draggable={true}
-                  icon={iconoMarcador}
-                  eventHandlers={{
-                    dragend: (e) => {
-                      const pos = e.target.getLatLng();
-                      setForm((prev) => ({
-                        ...prev,
-                        lat: pos.lat.toFixed(6),
-                        lng: pos.lng.toFixed(6),
-                      }));
-                    },
-                  }}
-                />
-                <MoverMapa lat={parseFloat(form.lat)} lng={parseFloat(form.lng)} />
-              </MapContainer>
+            <div style={{ position: 'relative', height: 260, borderRadius: 8, overflow: 'hidden', marginBottom: 8 }}>
+              {!mapaListo ? (
+                <div className="d-flex flex-column align-items-center justify-content-center h-100 bg-light">
+                  <span className="spinner-border text-primary mb-2"></span>
+                  <span className="small text-muted">Obteniendo ubicación GPS...</span>
+                </div>
+              ) : (
+                <MapContainer
+                  key={mapaKeyRef.current}
+                  center={[parseFloat(form.lat) || -34.6037, parseFloat(form.lng) || -58.3816]}
+                  zoom={form.lat ? 17 : 12}
+                  style={{ height: '100%', width: '100%' }}
+                  scrollWheelZoom={false}
+                >
+                  <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; OpenStreetMap'
+                  />
+                  <Marker
+                    position={[parseFloat(form.lat) || -34.6037, parseFloat(form.lng) || -58.3816]}
+                    draggable={true}
+                    icon={iconoMarcador}
+                    eventHandlers={{
+                      dragend: (e) => {
+                        const pos = e.target.getLatLng();
+                        setForm((prev) => ({
+                          ...prev,
+                          lat: pos.lat.toFixed(6),
+                          lng: pos.lng.toFixed(6),
+                        }));
+                      },
+                    }}
+                  />
+                  <MoverMapa lat={parseFloat(form.lat)} lng={parseFloat(form.lng)} />
+                </MapContainer>
+              )}
             </div>
             <div className="text-muted small text-center mb-3">
-              <i className="bi bi-arrows-move me-1"></i>Arrastrá el marcador para ubicarte si el GPS no está disponible
+              <i className="bi bi-arrows-move me-1"></i>Arrastrá el marcador para ajustar la posición exacta
             </div>
             <div className="row g-2 mt-2">
               <div className="col-6">

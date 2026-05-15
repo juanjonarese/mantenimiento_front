@@ -1,4 +1,7 @@
-const API_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+const IS_DEV = import.meta.env.DEV;
+const API_URL = IS_DEV
+  ? "http://localhost:3001/api"
+  : (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
 async function handleResponse(response) {
   const data = await response.json();
@@ -9,6 +12,25 @@ async function handleResponse(response) {
 // ============= USUARIOS =============
 
 export const loginUsuario = async (email, password) => {
+  if (IS_DEV) {
+    // Intenta backend local; si no está corriendo, usa auth por localStorage
+    try {
+      const response = await fetch(`${API_URL}/usuarios/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      return handleResponse(response);
+    } catch {
+      // Backend local no disponible — validar contra usuario guardado en localStorage
+      const usuarioLocal = JSON.parse(localStorage.getItem("usuarioLocal") || "null");
+      if (usuarioLocal && usuarioLocal.email === email && usuarioLocal.password === password) {
+        return { token: "dev-token-local", rol: usuarioLocal.rol || "admin", msg: "Sesión local iniciada" };
+      }
+      throw new Error("Backend local no disponible y no hay usuario local configurado");
+    }
+  }
+
   const response = await fetch(`${API_URL}/usuarios/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -20,6 +42,7 @@ export const loginUsuario = async (email, password) => {
 // ============= TRABAJOS =============
 
 export const sincronizarTrabajos = async (trabajos) => {
+  if (IS_DEV) return { ok: true, sincronizados: 0 };
   const response = await fetch(`${API_URL}/trabajos/sync`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -29,12 +52,14 @@ export const sincronizarTrabajos = async (trabajos) => {
 };
 
 export const obtenerTrabajosBackend = async (filtros = {}) => {
+  if (IS_DEV) return { trabajos: [] };
   const params = new URLSearchParams(filtros).toString();
   const response = await fetch(`${API_URL}/trabajos${params ? `?${params}` : ""}`);
   return handleResponse(response);
 };
 
 export const actualizarTrabajoBackend = async (id, datos) => {
+  if (IS_DEV) return { ok: true };
   const response = await fetch(`${API_URL}/trabajos/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -44,6 +69,7 @@ export const actualizarTrabajoBackend = async (id, datos) => {
 };
 
 export const eliminarTrabajoBackend = async (id) => {
+  if (IS_DEV) return { ok: true };
   const response = await fetch(`${API_URL}/trabajos/${id}`, {
     method: "DELETE",
   });
@@ -51,6 +77,7 @@ export const eliminarTrabajoBackend = async (id) => {
 };
 
 export const obtenerEstadisticas = async () => {
+  if (IS_DEV) return { estadisticas: null };
   const response = await fetch(`${API_URL}/trabajos/estadisticas`);
   return handleResponse(response);
 };
