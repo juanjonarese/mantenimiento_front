@@ -204,24 +204,18 @@ export default function NuevoTrabajoPage() {
                 : <><i className="bi bi-crosshair me-2"></i>Actualizar GPS</>}
             </button>
             {gpsBloqueado && (
-              <div className="alert alert-warning small mb-3">
-                <div className="fw-semibold mb-1">
-                  <i className="bi bi-geo-alt-fill me-1"></i>GPS bloqueado en este navegador
-                </div>
-                <div className="mb-2">Para habilitarlo en Android:</div>
-                <ol className="mb-2 ps-3">
-                  <li>Tocá el ícono de candado <i className="bi bi-lock"></i> en la barra de direcciones</li>
-                  <li>Seleccioná <strong>Permisos</strong> → <strong>Ubicación</strong></li>
-                  <li>Cambiá a <strong>Permitir</strong></li>
-                  <li>Recargá la página y volvé a tocar el botón GPS</li>
-                </ol>
-                <button type="button" className="btn btn-warning btn-sm w-100" onClick={handleGPS}>
-                  <i className="bi bi-arrow-clockwise me-1"></i>Reintentar GPS
+              <div className="d-flex align-items-center gap-2 mb-3 p-2 rounded border border-warning bg-warning bg-opacity-10">
+                <i className="bi bi-geo-alt-slash text-warning fs-5"></i>
+                <span className="small flex-grow-1 text-warning fw-semibold">
+                  GPS bloqueado — habilitalo tocando <i className="bi bi-lock"></i> en tu navegador
+                </span>
+                <button type="button" className="btn btn-warning btn-sm" onClick={handleGPS}>
+                  <i className="bi bi-arrow-clockwise"></i>
                 </button>
               </div>
             )}
             {errorGPS && !gpsBloqueado && (
-              <div className="alert alert-danger py-1 small">{errorGPS}</div>
+              <div className="alert alert-danger py-1 small mb-3">{errorGPS}</div>
             )}
             <div style={{ height: 260, borderRadius: 8, overflow: 'hidden', marginBottom: 8 }}>
               <MapContainer
