@@ -3,6 +3,7 @@ import { useState } from 'react';
 export function useGPS() {
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
+  const [bloqueado, setBloqueado] = useState(false);
 
   async function obtenerUbicacion() {
     if (!navigator.geolocation) {
@@ -11,6 +12,7 @@ export function useGPS() {
     }
     setCargando(true);
     setError(null);
+    setBloqueado(false);
     return new Promise((resolve) => {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
@@ -19,7 +21,12 @@ export function useGPS() {
         },
         (err) => {
           setCargando(false);
-          setError('No se pudo obtener la ubicación: ' + err.message);
+          if (err.code === 1) {
+            setBloqueado(true);
+            setError('Permiso de ubicación bloqueado');
+          } else {
+            setError('No se pudo obtener la ubicación: ' + err.message);
+          }
           resolve(null);
         },
         { enableHighAccuracy: true, timeout: 10000 }
@@ -27,5 +34,5 @@ export function useGPS() {
     });
   }
 
-  return { obtenerUbicacion, cargando, error };
+  return { obtenerUbicacion, cargando, error, bloqueado };
 }

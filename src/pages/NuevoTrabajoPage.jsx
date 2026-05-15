@@ -20,7 +20,7 @@ const FORM_VACIO = {
 export default function NuevoTrabajoPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { obtenerUbicacion, cargando: cargandoGPS, error: errorGPS } = useGPS();
+  const { obtenerUbicacion, cargando: cargandoGPS, error: errorGPS, bloqueado: gpsBloqueado } = useGPS();
   const [form, setForm] = useState(FORM_VACIO);
   const [fotos, setFotos] = useState([]);
   const [fotosExistentes, setFotosExistentes] = useState([]);
@@ -182,7 +182,26 @@ export default function NuevoTrabajoPage() {
                 ? <><span className="spinner-border spinner-border-sm me-2"></span>Obteniendo GPS...</>
                 : <><i className="bi bi-crosshair me-2"></i>Actualizar GPS</>}
             </button>
-            {errorGPS && <div className="alert alert-danger py-1 small">{errorGPS}</div>}
+            {gpsBloqueado && (
+              <div className="alert alert-warning small mb-3">
+                <div className="fw-semibold mb-1">
+                  <i className="bi bi-geo-alt-fill me-1"></i>GPS bloqueado en este navegador
+                </div>
+                <div className="mb-2">Para habilitarlo en Android:</div>
+                <ol className="mb-2 ps-3">
+                  <li>Tocá el ícono de candado <i className="bi bi-lock"></i> en la barra de direcciones</li>
+                  <li>Seleccioná <strong>Permisos</strong> → <strong>Ubicación</strong></li>
+                  <li>Cambiá a <strong>Permitir</strong></li>
+                  <li>Recargá la página y volvé a tocar el botón GPS</li>
+                </ol>
+                <button type="button" className="btn btn-warning btn-sm w-100" onClick={handleGPS}>
+                  <i className="bi bi-arrow-clockwise me-1"></i>Reintentar GPS
+                </button>
+              </div>
+            )}
+            {errorGPS && !gpsBloqueado && (
+              <div className="alert alert-danger py-1 small">{errorGPS}</div>
+            )}
             <div className="row g-2 mb-3">
               <div className="col-6">
                 <label className="form-label small fw-semibold">Latitud</label>
