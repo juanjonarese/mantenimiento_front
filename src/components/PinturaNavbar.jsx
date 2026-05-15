@@ -24,7 +24,7 @@ export default function PinturaNavbar() {
   };
 
   return (
-    <nav className="navbar sticky-top border-bottom" style={{ backgroundColor: '#fff' }}>
+    <nav className="navbar sticky-top border-bottom" style={{ backgroundColor: '#ff0000' }}>
       <div className="container d-flex align-items-center gap-1 gap-sm-2" style={{ maxWidth: 580 }}>
         <Link to="/" className="me-1">
           <img src="/logocrear.jpeg" alt="CREAR" style={{ height: 36, objectFit: 'contain' }} />
