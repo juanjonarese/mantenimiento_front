@@ -1,8 +1,29 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { guardarTrabajo, obtenerTrabajoPorId } from '../db/db';
 import { useGPS } from '../hooks/useGPS';
 import { TIPOS_TRABAJO, ESTADOS_OPERATIVO, ESTADOS_ADMIN } from '../constants';
+
+const iconoMarcador = new L.Icon({
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
+
+function MoverMapa({ lat, lng }) {
+  const map = useMap();
+  useEffect(() => {
+    if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+      map.setView([lat, lng], 17);
+    }
+  }, [lat, lng]);
+  return null;
+}
 
 const ITEM_VACIO = { tipoTrabajo: '', largo: '', ancho: '', cantidad: '' };
 const MATERIAL_VACIO = { nombre: '', cantidad: '', unidad: 'litros' };
@@ -202,24 +223,38 @@ export default function NuevoTrabajoPage() {
             {errorGPS && !gpsBloqueado && (
               <div className="alert alert-danger py-1 small">{errorGPS}</div>
             )}
-            <div className="row g-2 mb-3">
-              <div className="col-6">
-                <label className="form-label small fw-semibold">Latitud</label>
-                <input type="number" step="any" className="form-control form-control-sm"
-                  name="lat" value={form.lat} onChange={handleChange} placeholder="-34.6037" />
-              </div>
-              <div className="col-6">
-                <label className="form-label small fw-semibold">Longitud</label>
-                <input type="number" step="any" className="form-control form-control-sm"
-                  name="lng" value={form.lng} onChange={handleChange} placeholder="-58.3816" />
-              </div>
+            <div style={{ height: 260, borderRadius: 8, overflow: 'hidden', marginBottom: 8 }}>
+              <MapContainer
+                center={[parseFloat(form.lat) || -34.6037, parseFloat(form.lng) || -58.3816]}
+                zoom={16}
+                style={{ height: '100%', width: '100%' }}
+                scrollWheelZoom={false}
+              >
+                <TileLayer
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution='&copy; OpenStreetMap'
+                />
+                <Marker
+                  position={[parseFloat(form.lat) || -34.6037, parseFloat(form.lng) || -58.3816]}
+                  draggable={true}
+                  icon={iconoMarcador}
+                  eventHandlers={{
+                    dragend: (e) => {
+                      const pos = e.target.getLatLng();
+                      setForm((prev) => ({
+                        ...prev,
+                        lat: pos.lat.toFixed(6),
+                        lng: pos.lng.toFixed(6),
+                      }));
+                    },
+                  }}
+                />
+                <MoverMapa lat={parseFloat(form.lat)} lng={parseFloat(form.lng)} />
+              </MapContainer>
             </div>
-            {form.lat && form.lng && (
-              <a href={`https://maps.google.com/?q=${form.lat},${form.lng}`}
-                target="_blank" rel="noreferrer" className="btn btn-sm btn-outline-success w-100">
-                <i className="bi bi-map me-1"></i>Ver en Google Maps
-              </a>
-            )}
+            <div className="text-muted small text-center mb-3">
+              <i className="bi bi-arrows-move me-1"></i>Arrastrá el marcador para ajustar la posición exacta
+            </div>
             <div className="row g-2 mt-2">
               <div className="col-6">
                 <label className="form-label small fw-semibold">Calle 1 *</label>
