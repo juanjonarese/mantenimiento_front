@@ -34,6 +34,7 @@ export default function PinturaNavbar() {
         {navLink('/mapa', 'map', 'Mapa')}
         {navLink('/panel', 'bar-chart-line', 'Panel')}
         {esAdmin && navLink('/certificaciones', 'patch-check', 'Certif.')}
+        {esAdmin && navLink('/usuarios', 'people', 'Usuarios')}
         <button
           className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 ms-auto"
           onClick={handleLogout}

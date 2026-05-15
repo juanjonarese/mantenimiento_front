@@ -41,6 +41,43 @@ export const loginUsuario = async (email, password) => {
   return handleResponse(response);
 };
 
+export const obtenerUsuarios = async () => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/usuarios`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return handleResponse(response);
+};
+
+export const crearUsuario = async (datos) => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/usuarios/registro`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(datos),
+  });
+  return handleResponse(response);
+};
+
+export const actualizarUsuario = async (id, datos) => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/usuarios/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(datos),
+  });
+  return handleResponse(response);
+};
+
+export const eliminarUsuario = async (id) => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/usuarios/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return handleResponse(response);
+};
+
 // ============= TRABAJOS =============
 
 export const sincronizarTrabajos = async (trabajos) => {

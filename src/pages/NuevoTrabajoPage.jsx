@@ -5,6 +5,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { guardarTrabajo, obtenerTrabajoPorId } from '../db/db';
 import { useGPS } from '../hooks/useGPS';
+import { comprimirMedia } from '../utils/comprimirMedia';
 import { TIPOS_TRABAJO, ESTADOS_OPERATIVO, ESTADOS_ADMIN } from '../constants';
 
 const iconoMarcador = new L.Icon({
@@ -45,6 +46,7 @@ export default function NuevoTrabajoPage() {
   const [fotosExistentes, setFotosExistentes] = useState([]);
   const [guardando, setGuardando] = useState(false);
   const [errorForm, setErrorForm] = useState('');
+  const [comprimiendo, setComprimiendo] = useState(false);
   const [mapaListo, setMapaListo] = useState(false);
   const [gpsFallo, setGpsFallo] = useState(false);
 
@@ -171,16 +173,17 @@ export default function NuevoTrabajoPage() {
 
   async function handleFotos(e) {
     const archivos = Array.from(e.target.files);
-    const nuevas = await Promise.all(
-      archivos.map((file) =>
-        new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve({ nombre: file.name, tipo: file.type, data: reader.result, subido: false });
-          reader.readAsDataURL(file);
-        })
-      )
-    );
-    setFotos((prev) => [...prev, ...nuevas]);
+    if (!archivos.length) return;
+    setComprimiendo(true);
+    setErrorForm('');
+    try {
+      const nuevas = await Promise.all(archivos.map(comprimirMedia));
+      setFotos((prev) => [...prev, ...nuevas]);
+    } catch (err) {
+      setErrorForm(err.message);
+    } finally {
+      setComprimiendo(false);
+    }
   }
 
   async function handleSubmit(e) {
@@ -411,8 +414,10 @@ export default function NuevoTrabajoPage() {
           </div>
           <div className="card-body">
             <button type="button" className="btn btn-outline-secondary w-100 mb-3"
-              onClick={() => fileRef.current.click()}>
-              <i className="bi bi-upload me-2"></i>Adjuntar fotos / videos
+              onClick={() => fileRef.current.click()} disabled={comprimiendo}>
+              {comprimiendo
+                ? <><span className="spinner-border spinner-border-sm me-2"></span>Comprimiendo...</>
+                : <><i className="bi bi-upload me-2"></i>Adjuntar fotos / videos</>}
             </button>
             <input ref={fileRef} type="file" multiple accept="image/*,video/*"
               capture="environment" className="d-none" onChange={handleFotos} />
@@ -439,7 +444,7 @@ export default function NuevoTrabajoPage() {
             )}
             {fotos.length > 0 && (
               <div>
-                <div className="small text-muted mb-1">Nuevos ({fotos.length}):</div>
+                <div className="small text-muted mb-1">Nuevos ({fotos.length}) — comprimidos:</div>
                 <div className="d-flex flex-wrap gap-2">
                   {fotos.map((f, i) => (
                     <div key={i} className="position-relative">
@@ -448,6 +453,12 @@ export default function NuevoTrabajoPage() {
                       ) : (
                         <div className="bg-light border rounded d-flex align-items-center justify-content-center" style={{ width: 70, height: 70 }}>
                           <i className="bi bi-camera-video text-secondary fs-4"></i>
+                        </div>
+                      )}
+                      {f.pesoFinalKB && (
+                        <div className="position-absolute bottom-0 start-0 end-0 text-center"
+                          style={{ fontSize: 9, background: 'rgba(0,0,0,0.55)', color: '#fff', borderRadius: '0 0 4px 4px' }}>
+                          {f.pesoFinalKB < 1024 ? `${f.pesoFinalKB}KB` : `${(f.pesoFinalKB/1024).toFixed(1)}MB`}
                         </div>
                       )}
                       <button type="button" className="btn btn-danger btn-sm position-absolute top-0 end-0 p-0"

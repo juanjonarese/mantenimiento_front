@@ -9,9 +9,10 @@ import OfflineBadge from "./components/OfflineBadge";
 import LoginScreen from "./pages/LoginScreen";
 import ProtectedRoute from "./components/ProtectedRoute";
 
-const MapaPage           = lazy(() => import("./pages/MapaPage"));
-const PanelPage          = lazy(() => import("./pages/PanelPage"));
+const MapaPage            = lazy(() => import("./pages/MapaPage"));
+const PanelPage           = lazy(() => import("./pages/PanelPage"));
 const CertificacionesPage = lazy(() => import("./pages/CertificacionesPage"));
+const UsuariosPage        = lazy(() => import("./pages/UsuariosPage"));
 
 const Spinner = () => (
   <div className="d-flex justify-content-center align-items-center" style={{ height: '60vh' }}>
@@ -54,6 +55,11 @@ function App() {
         <Route path="/certificaciones" element={
           <ProtectedRoute><Layout>
             <Suspense fallback={<Spinner />}><CertificacionesPage /></Suspense>
+          </Layout></ProtectedRoute>
+        } />
+        <Route path="/usuarios" element={
+          <ProtectedRoute><Layout>
+            <Suspense fallback={<Spinner />}><UsuariosPage /></Suspense>
           </Layout></ProtectedRoute>
         } />
         <Route path="*" element={<Navigate to="/" replace />} />
