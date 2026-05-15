@@ -1,7 +1,8 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 export default function PinturaNavbar() {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
 
   const navLink = (to, icon, label) => {
     const active = pathname === to;
@@ -16,6 +17,11 @@ export default function PinturaNavbar() {
     );
   };
 
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate("/login");
+  };
+
   return (
     <nav className="navbar navbar-dark bg-success sticky-top">
       <div className="container" style={{ maxWidth: 580 }}>
@@ -28,6 +34,13 @@ export default function PinturaNavbar() {
           {navLink('/lista', 'list-ul', 'Lista')}
           {navLink('/mapa', 'map', 'Mapa')}
           {navLink('/panel', 'bar-chart-line', 'Panel')}
+          <button
+            className="btn btn-sm btn-outline-light d-flex align-items-center gap-1"
+            onClick={handleLogout}
+          >
+            <i className="bi bi-box-arrow-right"></i>
+            <span className="d-none d-sm-inline">Salir</span>
+          </button>
         </div>
       </div>
     </nav>

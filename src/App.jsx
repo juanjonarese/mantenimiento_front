@@ -7,6 +7,7 @@ import DetallePage from "./pages/DetallePage";
 import PinturaNavbar from "./components/PinturaNavbar";
 import OfflineBadge from "./components/OfflineBadge";
 import LoginScreen from "./pages/LoginScreen";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const MapaPage  = lazy(() => import("./pages/MapaPage"));
 const PanelPage = lazy(() => import("./pages/PanelPage"));
@@ -34,20 +35,20 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginScreen />} />
-        <Route path="/" element={<Layout><DashboardPage /></Layout>} />
-        <Route path="/nuevo" element={<Layout><NuevoTrabajoPage /></Layout>} />
-        <Route path="/editar/:id" element={<Layout><NuevoTrabajoPage /></Layout>} />
-        <Route path="/lista" element={<Layout><ListaPage /></Layout>} />
-        <Route path="/detalle/:id" element={<Layout><DetallePage /></Layout>} />
+        <Route path="/" element={<ProtectedRoute><Layout><DashboardPage /></Layout></ProtectedRoute>} />
+        <Route path="/nuevo" element={<ProtectedRoute><Layout><NuevoTrabajoPage /></Layout></ProtectedRoute>} />
+        <Route path="/editar/:id" element={<ProtectedRoute><Layout><NuevoTrabajoPage /></Layout></ProtectedRoute>} />
+        <Route path="/lista" element={<ProtectedRoute><Layout><ListaPage /></Layout></ProtectedRoute>} />
+        <Route path="/detalle/:id" element={<ProtectedRoute><Layout><DetallePage /></Layout></ProtectedRoute>} />
         <Route path="/mapa" element={
-          <Layout fullWidth>
+          <ProtectedRoute><Layout fullWidth>
             <Suspense fallback={<Spinner />}><MapaPage /></Suspense>
-          </Layout>
+          </Layout></ProtectedRoute>
         } />
         <Route path="/panel" element={
-          <Layout fullWidth>
+          <ProtectedRoute><Layout fullWidth>
             <Suspense fallback={<Spinner />}><PanelPage /></Suspense>
-          </Layout>
+          </Layout></ProtectedRoute>
         } />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
