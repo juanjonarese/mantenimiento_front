@@ -1,3 +1,5 @@
+import { obtenerTrabajos as obtenerTrabajosLocal } from '../db/db';
+
 const IS_DEV = import.meta.env.DEV;
 const API_URL = IS_DEV
   ? "http://localhost:3001/api"
@@ -52,7 +54,10 @@ export const sincronizarTrabajos = async (trabajos) => {
 };
 
 export const obtenerTrabajosBackend = async (filtros = {}) => {
-  if (IS_DEV) return { trabajos: [] };
+  if (IS_DEV) {
+    const trabajos = await obtenerTrabajosLocal();
+    return { trabajos };
+  }
   const params = new URLSearchParams(filtros).toString();
   const response = await fetch(`${API_URL}/trabajos${params ? `?${params}` : ""}`);
   return handleResponse(response);

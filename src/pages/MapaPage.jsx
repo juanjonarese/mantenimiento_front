@@ -6,15 +6,15 @@ import { obtenerTrabajos } from '../db/db';
 import { COLORES_ESTADO_OP, COLORES_ESTADO_ADMIN } from '../constants';
 
 const COLOR_PIN = {
-  'Certificado':  '#0d6efd', // azul
-  'Finalizado':   '#198754', // verde
-  'En proceso':   '#ffc107', // amarillo
-  'Sin iniciar':  '#dc3545', // rojo
+  'Certificado': '#0d6efd', // azul
+  'Terminado':   '#198754', // verde
+  'En proceso':  '#ffc107', // amarillo
+  'Sin iniciar': '#dc3545', // rojo
 };
 
 function getPinColor(trabajo) {
   if (trabajo.estadoAdmin === 'Certificado') return COLOR_PIN['Certificado'];
-  if (trabajo.estadoOperativo === 'Finalizado') return COLOR_PIN['Finalizado'];
+  if (trabajo.estadoOperativo === 'Terminado' || trabajo.estadoOperativo === 'Finalizado') return COLOR_PIN['Terminado'];
   if (trabajo.estadoOperativo === 'En proceso') return COLOR_PIN['En proceso'];
   return COLOR_PIN['Sin iniciar'];
 }

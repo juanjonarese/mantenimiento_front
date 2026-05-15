@@ -9,17 +9,19 @@ export const TIPOS_TRABAJO = [
   'Otros',
 ];
 
-export const ESTADOS_OPERATIVO = ['Sin iniciar', 'En proceso', 'Finalizado'];
+export const ESTADOS_OPERATIVO = ['Sin iniciar', 'En proceso', 'Terminado'];
 
-export const ESTADOS_ADMIN = ['Sin certificar', 'Certificado'];
+export const ESTADOS_ADMIN = ['Sin certificar', 'Certificado', 'Rechazado'];
 
 export const COLORES_ESTADO_OP = {
   'Sin iniciar': 'secondary',
   'En proceso': 'warning',
-  'Finalizado': 'success',
+  'Terminado': 'success',
+  'Finalizado': 'success', // backward compat datos viejos
 };
 
 export const COLORES_ESTADO_ADMIN = {
-  'Sin certificar': 'danger',
-  'Certificado': 'primary',
+  'Sin certificar': 'secondary',
+  'Certificado': 'success',
+  'Rechazado': 'danger',
 };

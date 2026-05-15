@@ -11,7 +11,7 @@ import { TIPOS_TRABAJO, COLORES_ESTADO_OP, COLORES_ESTADO_ADMIN } from '../const
 
 const COLOR_PIN = {
   'Certificado': '#0d6efd',
-  'Finalizado':  '#198754',
+  'Terminado':   '#198754',
   'En proceso':  '#ffc107',
   'Sin iniciar': '#dc3545',
 };
@@ -20,7 +20,7 @@ const COLORES_PIE = ['#0d6efd','#198754','#ffc107','#dc3545','#6f42c1','#0dcaf0'
 
 function getPinColor(t) {
   if (t.estadoAdmin === 'Certificado') return COLOR_PIN['Certificado'];
-  if (t.estadoOperativo === 'Finalizado') return COLOR_PIN['Finalizado'];
+  if (t.estadoOperativo === 'Terminado' || t.estadoOperativo === 'Finalizado') return COLOR_PIN['Terminado'];
   if (t.estadoOperativo === 'En proceso') return COLOR_PIN['En proceso'];
   return COLOR_PIN['Sin iniciar'];
 }
