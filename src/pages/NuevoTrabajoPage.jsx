@@ -203,17 +203,6 @@ export default function NuevoTrabajoPage() {
                 ? <><span className="spinner-border spinner-border-sm me-2"></span>Obteniendo GPS...</>
                 : <><i className="bi bi-crosshair me-2"></i>Actualizar GPS</>}
             </button>
-            {gpsBloqueado && (
-              <div className="d-flex align-items-center gap-2 mb-3 p-2 rounded border border-warning bg-warning bg-opacity-10">
-                <i className="bi bi-geo-alt-slash text-warning fs-5"></i>
-                <span className="small flex-grow-1 text-warning fw-semibold">
-                  GPS bloqueado — habilitalo tocando <i className="bi bi-lock"></i> en tu navegador
-                </span>
-                <button type="button" className="btn btn-warning btn-sm" onClick={handleGPS}>
-                  <i className="bi bi-arrow-clockwise"></i>
-                </button>
-              </div>
-            )}
             {errorGPS && !gpsBloqueado && (
               <div className="alert alert-danger py-1 small mb-3">{errorGPS}</div>
             )}
@@ -247,7 +236,7 @@ export default function NuevoTrabajoPage() {
               </MapContainer>
             </div>
             <div className="text-muted small text-center mb-3">
-              <i className="bi bi-arrows-move me-1"></i>Arrastrá el marcador para ajustar la posición exacta
+              <i className="bi bi-arrows-move me-1"></i>Arrastrá el marcador para ubicarte si el GPS no está disponible
             </div>
             <div className="row g-2 mt-2">
               <div className="col-6">
