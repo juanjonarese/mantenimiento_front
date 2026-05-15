@@ -1,5 +1,11 @@
 import { useState } from 'react';
 
+function pedirPosicion(opciones) {
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(resolve, reject, opciones);
+  });
+}
+
 export function useGPS() {
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
@@ -13,25 +19,44 @@ export function useGPS() {
     setCargando(true);
     setError(null);
     setBloqueado(false);
-    return new Promise((resolve) => {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setCargando(false);
-          resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        },
-        (err) => {
-          setCargando(false);
-          if (err.code === 1) {
-            setBloqueado(true);
-            setError('Permiso de ubicación bloqueado');
-          } else {
-            setError('No se pudo obtener la ubicación: ' + err.message);
-          }
-          resolve(null);
-        },
-        { enableHighAccuracy: true, timeout: 30000, maximumAge: 60000 }
-      );
-    });
+
+    try {
+      // Primero intenta con ubicación de red (rápido: 1-2 segundos)
+      const pos = await pedirPosicion({
+        enableHighAccuracy: false,
+        timeout: 8000,
+        maximumAge: 300000,
+      });
+      setCargando(false);
+      return { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    } catch (errRed) {
+      if (errRed.code === 1) {
+        // Permiso denegado — no vale la pena intentar alta precisión
+        setCargando(false);
+        setBloqueado(true);
+        setError('Permiso de ubicación bloqueado');
+        return null;
+      }
+      // Si falla la red, intenta GPS de alta precisión como fallback
+      try {
+        const pos = await pedirPosicion({
+          enableHighAccuracy: true,
+          timeout: 20000,
+          maximumAge: 0,
+        });
+        setCargando(false);
+        return { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      } catch (errGPS) {
+        setCargando(false);
+        if (errGPS.code === 1) {
+          setBloqueado(true);
+          setError('Permiso de ubicación bloqueado');
+        } else {
+          setError('No se pudo obtener la ubicación');
+        }
+        return null;
+      }
+    }
   }
 
   return { obtenerUbicacion, cargando, error, bloqueado };
