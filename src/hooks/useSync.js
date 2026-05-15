@@ -25,23 +25,25 @@ export function useSync() {
     setErrorSync(null);
 
     try {
-      // Envía solo metadata, sin base64 de fotos
+      const usuarioEmail = localStorage.getItem("email") || "";
       const payload = pendientesData.map((t) => ({
         idLocal: t.id,
         fechaCarga: t.fechaCarga,
         fechaModificacion: t.fechaModificacion,
-        usuario: t.usuario,
+        usuario: t.usuario || usuarioEmail,
         lat: t.lat,
         lng: t.lng,
         calle1: t.calle1,
         calle2: t.calle2,
-        tipoTrabajo: t.tipoTrabajo,
-        largo: t.largo,
-        ancho: t.ancho,
-        cantidad: t.cantidad,
+        items: t.items || [],
+        materiales: t.materiales || [],
         superficie: t.superficie,
         estadoOperativo: t.estadoOperativo,
         estadoAdmin: t.estadoAdmin,
+        motivoRechazo: t.motivoRechazo,
+        documentacionCertificacion: t.documentacionCertificacion,
+        notasCertificacion: t.notasCertificacion,
+        fechaCertificacion: t.fechaCertificacion,
         observaciones: t.observaciones,
         linkDrive: t.linkDrive,
         linkMyMaps: t.linkMyMaps,

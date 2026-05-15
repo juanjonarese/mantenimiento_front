@@ -82,9 +82,10 @@ export const eliminarUsuario = async (id) => {
 
 export const sincronizarTrabajos = async (trabajos) => {
   if (IS_DEV) return { ok: true, sincronizados: 0 };
+  const token = localStorage.getItem("token");
   const response = await fetch(`${API_URL}/trabajos/sync`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify({ trabajos }),
   });
   return handleResponse(response);
@@ -95,8 +96,11 @@ export const obtenerTrabajosBackend = async (filtros = {}) => {
     const trabajos = await obtenerTrabajosLocal();
     return { trabajos };
   }
+  const token = localStorage.getItem("token");
   const params = new URLSearchParams(filtros).toString();
-  const response = await fetch(`${API_URL}/trabajos${params ? `?${params}` : ""}`);
+  const response = await fetch(`${API_URL}/trabajos${params ? `?${params}` : ""}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   return handleResponse(response);
 };
 
@@ -120,6 +124,9 @@ export const eliminarTrabajoBackend = async (id) => {
 
 export const obtenerEstadisticas = async () => {
   if (IS_DEV) return { estadisticas: null };
-  const response = await fetch(`${API_URL}/trabajos/estadisticas`);
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/trabajos/estadisticas`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   return handleResponse(response);
 };
