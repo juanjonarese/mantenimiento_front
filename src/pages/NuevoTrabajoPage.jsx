@@ -48,6 +48,7 @@ export default function NuevoTrabajoPage() {
   const [guardando, setGuardando] = useState(false);
   const [errorForm, setErrorForm] = useState('');
   const [mapaListo, setMapaListo] = useState(false);
+  const [gpsFallo, setGpsFallo] = useState(false);
   const mapaKeyRef = useRef('default');
   const fileRef = useRef();
   const esEdicion = Boolean(id);
@@ -76,6 +77,8 @@ export default function NuevoTrabajoPage() {
           const lng = pos.lng.toFixed(6);
           mapaKeyRef.current = `${lat},${lng}`;
           setForm((prev) => ({ ...prev, lat, lng }));
+        } else {
+          setGpsFallo(true);
         }
         setMapaListo(true);
       });
@@ -127,7 +130,10 @@ export default function NuevoTrabajoPage() {
 
   async function handleGPS() {
     const pos = await obtenerUbicacion();
-    if (pos) setForm((prev) => ({ ...prev, lat: pos.lat.toFixed(6), lng: pos.lng.toFixed(6) }));
+    if (pos) {
+      setGpsFallo(false);
+      setForm((prev) => ({ ...prev, lat: pos.lat.toFixed(6), lng: pos.lng.toFixed(6) }));
+    }
   }
 
   async function handleFotos(e) {
@@ -224,8 +230,8 @@ export default function NuevoTrabajoPage() {
               ) : (
                 <MapContainer
                   key={mapaKeyRef.current}
-                  center={[parseFloat(form.lat) || -34.6037, parseFloat(form.lng) || -58.3816]}
-                  zoom={form.lat ? 17 : 12}
+                  center={[parseFloat(form.lat) || -38, parseFloat(form.lng) || -63]}
+                  zoom={form.lat ? 17 : 5}
                   style={{ height: '100%', width: '100%' }}
                   scrollWheelZoom={false}
                 >
@@ -252,6 +258,15 @@ export default function NuevoTrabajoPage() {
                 </MapContainer>
               )}
             </div>
+            {gpsFallo && (
+              <div className="d-flex align-items-center gap-2 mb-2 p-2 rounded bg-warning bg-opacity-10 border border-warning">
+                <i className="bi bi-geo-alt-slash text-warning"></i>
+                <span className="small flex-grow-1">GPS no disponible — navegá el mapa hasta tu ubicación y arrastrá el marcador</span>
+                <button type="button" className="btn btn-sm btn-warning py-0 px-2" onClick={handleGPS}>
+                  <i className="bi bi-arrow-clockwise"></i>
+                </button>
+              </div>
+            )}
             <div className="text-muted small text-center mb-3">
               <i className="bi bi-arrows-move me-1"></i>Arrastrá el marcador para ajustar la posición exacta
             </div>
