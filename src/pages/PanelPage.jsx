@@ -96,8 +96,29 @@ export default function PanelPage() {
   const porEstado = [
     { name: 'Sin iniciar', value: trabajos.filter((t) => t.estadoOperativo === 'Sin iniciar').length, color: '#dc3545' },
     { name: 'En proceso',  value: trabajos.filter((t) => t.estadoOperativo === 'En proceso').length,  color: '#ffc107' },
-    { name: 'Finalizado',  value: trabajos.filter((t) => t.estadoOperativo === 'Finalizado').length,  color: '#198754' },
+    { name: 'Terminado',   value: trabajos.filter((t) => ['Terminado','Finalizado'].includes(t.estadoOperativo)).length, color: '#198754' },
   ].filter((d) => d.value > 0);
+
+  const porOperario = (() => {
+    const mapa = {};
+    trabajos.forEach((t) => {
+      const u = t.usuario || 'Sin asignar';
+      mapa[u] = (mapa[u] || 0) + (t.superficie || 0);
+    });
+    return Object.entries(mapa)
+      .map(([usuario, superficie]) => ({ usuario: usuario.split('@')[0], superficie: parseFloat(superficie.toFixed(1)) }))
+      .sort((a, b) => b.superficie - a.superficie)
+      .slice(0, 8);
+  })();
+
+  const porDiaSuperficie = (() => {
+    const mapa = {};
+    trabajos.forEach((t) => {
+      const dia = new Date(t.fechaCarga).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
+      mapa[dia] = (mapa[dia] || 0) + (t.superficie || 0);
+    });
+    return Object.entries(mapa).slice(-20).map(([fecha, superficie]) => ({ fecha, superficie: parseFloat(superficie.toFixed(1)) }));
+  })();
 
   // ── Paginación ──
   const totalPaginas = Math.ceil(trabajos.length / POR_PAGINA);
@@ -222,7 +243,7 @@ export default function PanelPage() {
                   <option value="">Todos</option>
                   <option>Sin iniciar</option>
                   <option>En proceso</option>
-                  <option>Finalizado</option>
+                  <option>Terminado</option>
                 </select>
               </div>
               <div className="col-6 col-md-3 col-lg-2">
@@ -232,6 +253,7 @@ export default function PanelPage() {
                   <option value="">Todas</option>
                   <option>Sin certificar</option>
                   <option>Certificado</option>
+                  <option>Rechazado</option>
                 </select>
               </div>
             </div>
@@ -242,11 +264,11 @@ export default function PanelPage() {
         <div className="row g-3 mb-4">
           <StatCard label="Total trabajos" value={trabajos.length} icon="collection" color="primary" />
           <StatCard label="Superficie total" value={`${superficieTotal.toFixed(0)} m²`} icon="rulers" color="info" />
-          <StatCard label="Finalizados" value={trabajos.filter((t) => t.estadoOperativo === 'Finalizado').length} icon="check-circle" color="success" />
+          <StatCard label="Terminados" value={trabajos.filter((t) => ['Terminado','Finalizado'].includes(t.estadoOperativo)).length} icon="check-circle" color="success" />
           <StatCard label="En proceso" value={trabajos.filter((t) => t.estadoOperativo === 'En proceso').length} icon="hourglass-split" color="warning" />
           <StatCard label="Sin iniciar" value={trabajos.filter((t) => t.estadoOperativo === 'Sin iniciar').length} icon="pause-circle" color="danger" />
           <StatCard label="Certificados" value={trabajos.filter((t) => t.estadoAdmin === 'Certificado').length} icon="patch-check" color="primary"
-            sub={`${trabajos.filter((t) => t.estadoAdmin !== 'Certificado').length} sin certificar`} />
+            sub={`${trabajos.filter((t) => t.estadoAdmin === 'Rechazado').length} rechazados`} />
         </div>
 
         {/* ── GRÁFICOS ── */}
@@ -325,6 +347,55 @@ export default function PanelPage() {
           </div>
         </div>
 
+        {/* ── GRÁFICOS EXTRA ── */}
+        <div className="row g-3 mb-4">
+          <div className="col-12 col-lg-6">
+            <div className="card h-100">
+              <div className="card-header fw-semibold small">
+                <i className="bi bi-person-bar-chart me-1"></i>m² por operario
+              </div>
+              <div className="card-body">
+                {porOperario.length === 0
+                  ? <div className="text-center text-muted py-4">Sin datos</div>
+                  : (
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart data={porOperario} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
+                        <XAxis type="number" tick={{ fontSize: 11 }} unit=" m²" />
+                        <YAxis type="category" dataKey="usuario" tick={{ fontSize: 11 }} width={80} />
+                        <Tooltip formatter={(v) => [`${v} m²`, 'Superficie']} />
+                        <Bar dataKey="superficie" fill="#198754" radius={[0, 4, 4, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+              </div>
+            </div>
+          </div>
+
+          <div className="col-12 col-lg-6">
+            <div className="card h-100">
+              <div className="card-header fw-semibold small">
+                <i className="bi bi-graph-up me-1"></i>m² ejecutados por día
+              </div>
+              <div className="card-body">
+                {porDiaSuperficie.length === 0
+                  ? <div className="text-center text-muted py-4">Sin datos</div>
+                  : (
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart data={porDiaSuperficie} margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                        <XAxis dataKey="fecha" tick={{ fontSize: 11 }} />
+                        <YAxis tick={{ fontSize: 11 }} unit=" m²" />
+                        <Tooltip formatter={(v) => [`${v} m²`, 'Superficie']} />
+                        <Bar dataKey="superficie" fill="#0d6efd" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* ── MAPA ── */}
         <div className="card mb-4">
           <div className="card-header fw-semibold small d-flex justify-content-between align-items-center">
@@ -364,7 +435,9 @@ export default function PanelPage() {
                       pathOptions={{ color: getPinColor(t), fillColor: getPinColor(t), fillOpacity: 0.85, weight: 2 }}>
                       <Popup maxWidth={220}>
                         <div className="fw-semibold">{t.calle1} y {t.calle2}</div>
-                        <div className="small text-muted">{t.tipoTrabajo} · {t.superficie} m²</div>
+                        <div className="small text-muted">
+                          {t.items?.length > 0 ? t.items.map((i) => i.tipoTrabajo).join(', ') : t.tipoTrabajo} · {t.superficie} m²
+                        </div>
                         <div className="small">{t.estadoOperativo} · {t.estadoAdmin}</div>
                         <div className="small text-muted">{t.usuario}</div>
                       </Popup>
