@@ -14,7 +14,7 @@
 
 body {
   margin: 0;
-  background-color: #eef0f4;
+  background-color: #f8f9fa;
   font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
   -webkit-tap-highlight-color: transparent;
   min-height: 100vh;
@@ -25,7 +25,68 @@ body {
   min-height: 100vh;
 }
 
-/* ── Contenido centrado (formularios, lista, dashboard) ── */
+/* ── Sidebar (desktop) ── */
+.sidebar {
+  width: 260px;
+  min-height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  background: #fff;
+  border-right: 1px solid #dee2e6;
+  z-index: 200;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.06);
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  color: #6c757d;
+  text-decoration: none;
+  border-radius: 8px;
+  margin: 2px 8px;
+  font-size: 0.9rem;
+  transition: background 0.15s, color 0.15s;
+}
+.sidebar-link:hover {
+  background: #f8f9fa;
+  color: #212529;
+}
+.sidebar-link.active {
+  background: #e8f5e9;
+  color: #198754;
+  font-weight: 600;
+}
+
+/* ── Wrapper del contenido principal ── */
+.main-content-wrapper {
+  min-width: 0;
+}
+@media (min-width: 768px) {
+  .main-content-wrapper {
+    margin-left: 260px;
+  }
+}
+
+/* ── Headers sticky de páginas ── */
+.page-header {
+  position: sticky;
+  top: 56px; /* mobile: debajo del top-navbar */
+  z-index: 100;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+@media (min-width: 768px) {
+  .page-header {
+    top: 0; /* desktop: no hay top-navbar */
+  }
+  .panel-header {
+    top: 0 !important;
+  }
+}
+
+/* ── Contenido centrado (formularios, nuevo trabajo) ── */
 .pintura-content {
   max-width: 580px;
   margin: 0 auto;
@@ -36,6 +97,7 @@ body {
 
 @media (min-width: 768px) {
   .pintura-content {
+    min-height: 100vh;
     box-shadow: 0 4px 32px rgba(0, 0, 0, 0.09);
     border-radius: 0 0 16px 16px;
     margin-bottom: 32px;
@@ -53,6 +115,27 @@ body {
   border-radius: 12px 12px 0 0 !important;
   border-bottom: 1px solid #e9ecef;
   background: #f8f9fa !important;
+}
+
+/* ── Botones primarios: verde en vez de azul Bootstrap ── */
+.btn-primary {
+  --bs-btn-bg: #198754;
+  --bs-btn-border-color: #198754;
+  --bs-btn-hover-bg: #157347;
+  --bs-btn-hover-border-color: #146c43;
+  --bs-btn-active-bg: #146c43;
+  --bs-btn-active-border-color: #13653f;
+  --bs-btn-focus-shadow-rgb: 25, 135, 84;
+}
+
+.btn-outline-primary {
+  --bs-btn-color: #198754;
+  --bs-btn-border-color: #198754;
+  --bs-btn-hover-bg: #198754;
+  --bs-btn-hover-border-color: #198754;
+  --bs-btn-active-bg: #157347;
+  --bs-btn-active-border-color: #146c43;
+  --bs-btn-focus-shadow-rgb: 25, 135, 84;
 }
 
 /* ── Inputs ── */
@@ -95,6 +178,18 @@ body {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
+/* ── Lista de trabajos ── */
+.lista-page {
+  min-height: calc(100vh - 56px);
+  background: #f8f9fa;
+}
+
+/* ── Materiales ── */
+.materiales-page {
+  min-height: calc(100vh - 56px);
+  background: #f8f9fa;
+}
+
 /* ── Panel de gestión (office) ── */
 .panel-page {
   min-height: calc(100vh - 56px);
@@ -116,6 +211,42 @@ body {
 
 @keyframes spin { to { transform: rotate(360deg); } }
 .spin { display: inline-block; animation: spin 0.8s linear infinite; }
+
+/* ── Dark mode — overrides para elementos custom ── */
+[data-bs-theme="dark"] body {
+  background-color: #111318;
+}
+[data-bs-theme="dark"] .sidebar {
+  background: #1a1d23;
+  border-color: #2e3138;
+}
+[data-bs-theme="dark"] .sidebar-link {
+  color: #9aa0ac;
+}
+[data-bs-theme="dark"] .sidebar-link:hover {
+  background: #24282f;
+  color: #e0e4ec;
+}
+[data-bs-theme="dark"] .sidebar-link.active {
+  background: #1a3a2a;
+  color: #4ade80;
+}
+[data-bs-theme="dark"] .lista-page,
+[data-bs-theme="dark"] .materiales-page,
+[data-bs-theme="dark"] .panel-page {
+  background: #111318;
+}
+[data-bs-theme="dark"] .pintura-content {
+  background: #1a1d23;
+}
+[data-bs-theme="dark"] .page-header {
+  background: #1a1d23 !important;
+  border-color: #2e3138 !important;
+}
+[data-bs-theme="dark"] .panel-header {
+  background: #1a1d23 !important;
+  border-color: #2e3138 !important;
+}
 
 /* ── Popup Leaflet ── */
 .leaflet-popup-content-wrapper {

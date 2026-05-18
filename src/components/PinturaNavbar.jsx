@@ -1,48 +1,138 @@
+import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useTheme } from '../hooks/useTheme';
+
+const NAV_LINKS = [
+  { to: '/',               icon: 'bar-chart-line',  label: 'Panel',          adminOnly: false },
+  { to: '/lista',          icon: 'list-ul',          label: 'Lista',          adminOnly: false },
+  { to: '/mapa',           icon: 'map',              label: 'Mapa',           adminOnly: false },
+  { to: '/certificaciones',icon: 'patch-check',      label: 'Certificaciones',adminOnly: true  },
+  { to: '/nuevo',          icon: 'plus-circle',      label: 'Nuevo trabajo',  adminOnly: false },
+  { to: '/usuarios',       icon: 'people',           label: 'Usuarios',       adminOnly: true  },
+  { to: '/materiales',     icon: 'box-seam',         label: 'Materiales',     adminOnly: true  },
+];
 
 export default function PinturaNavbar() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const esAdmin = localStorage.getItem('rol') === 'admin' || import.meta.env.DEV;
+  const [abierto, setAbierto] = useState(false);
 
-  const navLink = (to, icon, label) => {
-    const active = pathname === to;
-    return (
-      <Link
-        to={to}
-        className={`btn btn-sm d-flex align-items-center gap-1 ${active ? 'btn-dark' : 'btn-outline-secondary'}`}
-      >
-        <i className={`bi bi-${icon}`}></i>
-        <span className="d-none d-sm-inline">{label}</span>
-      </Link>
-    );
-  };
+  const { tema, toggleTema } = useTheme();
+  const esAdmin = localStorage.getItem('rol') === 'admin' || import.meta.env.DEV;
+  const links = NAV_LINKS.filter((l) => !l.adminOnly || esAdmin);
 
   const handleLogout = () => {
     localStorage.clear();
-    navigate("/login");
+    navigate('/login');
   };
 
+  const cerrar = () => setAbierto(false);
+
   return (
-    <nav className="navbar sticky-top border-bottom" style={{ backgroundColor: '#fff' }}>
-      <div className="container d-flex align-items-center gap-1 gap-sm-2" style={{ maxWidth: 580 }}>
-        <Link to="/" className="me-1">
-          <img src="/logocrear.jpeg" alt="CREAR" style={{ height: 36, objectFit: 'contain' }} />
-        </Link>
-        {navLink('/nuevo', 'plus-circle', 'Nuevo')}
-        {navLink('/lista', 'list-ul', 'Lista')}
-        {navLink('/mapa', 'map', 'Mapa')}
-        {navLink('/panel', 'bar-chart-line', 'Panel')}
-        {esAdmin && navLink('/certificaciones', 'patch-check', 'Certif.')}
-        {esAdmin && navLink('/usuarios', 'people', 'Usuarios')}
-        <button
-          className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 ms-auto"
-          onClick={handleLogout}
-        >
-          <i className="bi bi-box-arrow-right"></i>
-          <span className="d-none d-sm-inline">Salir</span>
-        </button>
-      </div>
-    </nav>
+    <>
+      {/* ══════════════════════════════════════
+          DESKTOP — Sidebar vertical (md+)
+      ══════════════════════════════════════ */}
+      <aside className="sidebar d-none d-md-flex flex-column">
+        {/* Logo */}
+        <div className="p-3 border-bottom">
+          <Link to="/" onClick={cerrar}>
+            <img src="/logocrear.jpeg" alt="CREAR" style={{ height: 40, objectFit: 'contain' }} />
+          </Link>
+        </div>
+
+        {/* Links */}
+        <nav className="flex-grow-1 py-2">
+          {links.map(({ to, icon, label }) => {
+            const active = pathname === to;
+            return (
+              <Link
+                key={to}
+                to={to}
+                className={`sidebar-link${active ? ' active' : ''}`}
+              >
+                <i className={`bi bi-${icon} fs-5`}></i>
+                <span>{label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Modo noche + Logout */}
+        <div className="p-3 border-top d-flex flex-column gap-2">
+          <button
+            className="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2"
+            onClick={toggleTema}
+          >
+            <i className={`bi bi-${tema === 'dark' ? 'sun' : 'moon-stars'}`}></i>
+            <span>{tema === 'dark' ? 'Modo claro' : 'Modo noche'}</span>
+          </button>
+          <button
+            className="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2"
+            onClick={handleLogout}
+          >
+            <i className="bi bi-box-arrow-right"></i>
+            <span>Cerrar sesión</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* ══════════════════════════════════════
+          MOBILE — Top bar con hamburguesa
+      ══════════════════════════════════════ */}
+      <nav className="d-md-none navbar sticky-top border-bottom bg-white" style={{ zIndex: 300 }}>
+        <div className="container-fluid px-3">
+          <Link to="/" className="navbar-brand p-0 me-2" onClick={cerrar}>
+            <img src="/logocrear.jpeg" alt="CREAR" style={{ height: 36, objectFit: 'contain' }} />
+          </Link>
+          <button
+            className="navbar-toggler border-0 ms-auto"
+            type="button"
+            onClick={() => setAbierto((v) => !v)}
+            aria-label="Menú"
+          >
+            <span className="navbar-toggler-icon"></span>
+          </button>
+        </div>
+
+        {/* Menú desplegable mobile */}
+        {abierto && (
+          <div className="border-top bg-white w-100 px-3 py-2">
+            {links.map(({ to, icon, label }) => {
+              const active = pathname === to;
+              return (
+                <Link
+                  key={to}
+                  to={to}
+                  onClick={cerrar}
+                  className={`d-flex align-items-center gap-2 px-3 py-2 rounded text-decoration-none mb-1 ${
+                    active ? 'fw-semibold text-dark bg-light' : 'text-secondary'
+                  }`}
+                >
+                  <i className={`bi bi-${icon}`}></i>
+                  {label}
+                </Link>
+              );
+            })}
+            <div className="border-top pt-2 mt-1 d-flex flex-column gap-2">
+              <button
+                className="btn btn-outline-secondary btn-sm w-100 d-flex align-items-center justify-content-center gap-2"
+                onClick={toggleTema}
+              >
+                <i className={`bi bi-${tema === 'dark' ? 'sun' : 'moon-stars'}`}></i>
+                <span>{tema === 'dark' ? 'Modo claro' : 'Modo noche'}</span>
+              </button>
+              <button
+                className="btn btn-outline-danger btn-sm w-100 d-flex align-items-center justify-content-center gap-2"
+                onClick={handleLogout}
+              >
+                <i className="bi bi-box-arrow-right"></i>
+                <span>Cerrar sesión</span>
+              </button>
+            </div>
+          </div>
+        )}
+      </nav>
+    </>
   );
 }

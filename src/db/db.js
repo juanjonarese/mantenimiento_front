@@ -1,15 +1,21 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'pintura-vial-db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE = 'trabajos';
+const STORE_MATERIALES = 'materiales';
 
 async function getDB() {
   return openDB(DB_NAME, DB_VERSION, {
-    upgrade(db) {
-      const store = db.createObjectStore(STORE, { keyPath: 'id' });
-      store.createIndex('sincronizado', 'sincronizado');
-      store.createIndex('fechaCarga', 'fechaCarga');
+    upgrade(db, oldVersion) {
+      if (oldVersion < 1) {
+        const store = db.createObjectStore(STORE, { keyPath: 'id' });
+        store.createIndex('sincronizado', 'sincronizado');
+        store.createIndex('fechaCarga', 'fechaCarga');
+      }
+      if (oldVersion < 2) {
+        db.createObjectStore(STORE_MATERIALES, { keyPath: 'id' });
+      }
     },
   });
 }
@@ -58,4 +64,22 @@ export async function marcarTodosSincronizados(ids) {
     })
   );
   await tx.done;
+}
+
+// ============= MATERIALES =============
+
+export async function obtenerMateriales() {
+  const db = await getDB();
+  const todos = await db.getAll(STORE_MATERIALES);
+  return todos.sort((a, b) => a.nombre.localeCompare(b.nombre));
+}
+
+export async function guardarMaterial(material) {
+  const db = await getDB();
+  await db.put(STORE_MATERIALES, material);
+}
+
+export async function eliminarMaterial(id) {
+  const db = await getDB();
+  await db.delete(STORE_MATERIALES, id);
 }

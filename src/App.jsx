@@ -1,6 +1,5 @@
 import React, { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import DashboardPage from "./pages/DashboardPage";
 import NuevoTrabajoPage from "./pages/NuevoTrabajoPage";
 import ListaPage from "./pages/ListaPage";
 import DetallePage from "./pages/DetallePage";
@@ -13,6 +12,7 @@ const MapaPage            = lazy(() => import("./pages/MapaPage"));
 const PanelPage           = lazy(() => import("./pages/PanelPage"));
 const CertificacionesPage = lazy(() => import("./pages/CertificacionesPage"));
 const UsuariosPage        = lazy(() => import("./pages/UsuariosPage"));
+const MaterialesPage      = lazy(() => import("./pages/MaterialesPage"));
 
 const Spinner = () => (
   <div className="d-flex justify-content-center align-items-center" style={{ height: '60vh' }}>
@@ -23,11 +23,13 @@ const Spinner = () => (
 function Layout({ children, fullWidth = false }) {
   return (
     <>
-      <OfflineBadge />
       <PinturaNavbar />
-      <main>
-        {fullWidth ? children : <div className="pintura-content">{children}</div>}
-      </main>
+      <div className="main-content-wrapper">
+        <OfflineBadge />
+        <main>
+          {fullWidth ? children : <div className="pintura-content">{children}</div>}
+        </main>
+      </div>
     </>
   );
 }
@@ -37,19 +39,18 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginScreen />} />
-        <Route path="/" element={<ProtectedRoute><Layout><DashboardPage /></Layout></ProtectedRoute>} />
+        <Route path="/" element={
+          <ProtectedRoute><Layout fullWidth>
+            <Suspense fallback={<Spinner />}><PanelPage /></Suspense>
+          </Layout></ProtectedRoute>
+        } />
         <Route path="/nuevo" element={<ProtectedRoute><Layout><NuevoTrabajoPage /></Layout></ProtectedRoute>} />
         <Route path="/editar/:id" element={<ProtectedRoute><Layout><NuevoTrabajoPage /></Layout></ProtectedRoute>} />
-        <Route path="/lista" element={<ProtectedRoute><Layout><ListaPage /></Layout></ProtectedRoute>} />
+        <Route path="/lista" element={<ProtectedRoute><Layout fullWidth><ListaPage /></Layout></ProtectedRoute>} />
         <Route path="/detalle/:id" element={<ProtectedRoute><Layout><DetallePage /></Layout></ProtectedRoute>} />
         <Route path="/mapa" element={
           <ProtectedRoute><Layout fullWidth>
             <Suspense fallback={<Spinner />}><MapaPage /></Suspense>
-          </Layout></ProtectedRoute>
-        } />
-        <Route path="/panel" element={
-          <ProtectedRoute><Layout fullWidth>
-            <Suspense fallback={<Spinner />}><PanelPage /></Suspense>
           </Layout></ProtectedRoute>
         } />
         <Route path="/certificaciones" element={
@@ -58,8 +59,13 @@ function App() {
           </Layout></ProtectedRoute>
         } />
         <Route path="/usuarios" element={
-          <ProtectedRoute><Layout>
+          <ProtectedRoute><Layout fullWidth>
             <Suspense fallback={<Spinner />}><UsuariosPage /></Suspense>
+          </Layout></ProtectedRoute>
+        } />
+        <Route path="/materiales" element={
+          <ProtectedRoute><Layout fullWidth>
+            <Suspense fallback={<Spinner />}><MaterialesPage /></Suspense>
           </Layout></ProtectedRoute>
         } />
         <Route path="*" element={<Navigate to="/" replace />} />

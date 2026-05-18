@@ -422,7 +422,7 @@ export default function PanelPage() {
                 </div>
               ) : (
                 <MapContainer
-                  center={[trabajos.find(t => t.lat)?.lat || -34.6, trabajos.find(t => t.lng)?.lng || -58.38]}
+                  center={[trabajos.find(t => t.lat)?.lat || -26.8241, trabajos.find(t => t.lng)?.lng || -65.2226]}
                   zoom={12}
                   style={{ height: '100%', width: '100%', borderRadius: '0 0 12px 12px' }}
                 >

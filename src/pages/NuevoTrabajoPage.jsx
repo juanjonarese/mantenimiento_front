@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { guardarTrabajo, obtenerTrabajoPorId } from '../db/db';
+import { guardarTrabajo, obtenerTrabajoPorId, obtenerMateriales } from '../db/db';
 import { useGPS } from '../hooks/useGPS';
 import { comprimirMedia } from '../utils/comprimirMedia';
 import { TIPOS_TRABAJO, ESTADOS_OPERATIVO, ESTADOS_ADMIN } from '../constants';
@@ -25,9 +25,10 @@ function MoverMapa({ lat, lng }) {
 }
 
 const MATERIAL_VACIO = { nombre: '', cantidad: '', unidad: 'litros' };
-const NOMBRES_MATERIAL = ['Pintura blanca', 'Pintura amarilla', 'Microesferas', 'Diluyente', 'Termoplástico', 'Otros'];
-const UNIDADES_MATERIAL = ['litros', 'kg', 'unidades', 'm²'];
 const TRABAJO_VACIO = { tipoTrabajo: '', largo: '', ancho: '', cantidad: '', materiales: [] };
+
+const DEFAULT_LAT = -26.8241;
+const DEFAULT_LNG = -65.2226;
 
 const FORM_VACIO = {
   calle1: '', calle2: '', lat: '', lng: '',
@@ -51,15 +52,23 @@ export default function NuevoTrabajoPage() {
   const [gpsFallo, setGpsFallo] = useState(false);
 
   // Modal
+  const [busqueda, setBusqueda] = useState('');
+  const [resultadosBusqueda, setResultadosBusqueda] = useState([]);
+  const [buscando, setBuscando] = useState(false);
+  const [errorBusqueda, setErrorBusqueda] = useState('');
+
   const [modalAbierto, setModalAbierto] = useState(false);
   const [editIdx, setEditIdx] = useState(null);
   const [modalForm, setModalForm] = useState({ ...TRABAJO_VACIO });
   const [errorModal, setErrorModal] = useState('');
+  const [materialesDB, setMaterialesDB] = useState([]);
 
   const mapaKeyRef = useRef('default');
   const fileRef = useRef();
   const esEdicion = Boolean(id);
   const esAdmin = true;
+
+  useEffect(() => { obtenerMateriales().then(setMaterialesDB); }, []);
 
   useEffect(() => {
     if (id) {
@@ -115,6 +124,33 @@ export default function NuevoTrabajoPage() {
     }
   }
 
+  async function handleBuscar() {
+    if (!busqueda.trim()) return;
+    setBuscando(true);
+    setErrorBusqueda('');
+    setResultadosBusqueda([]);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(busqueda)}&format=json&limit=5&countrycodes=ar`
+      );
+      const data = await res.json();
+      if (data.length === 0) return setErrorBusqueda('No se encontró la dirección');
+      setResultadosBusqueda(data);
+    } catch {
+      setErrorBusqueda('Error al buscar la dirección');
+    } finally {
+      setBuscando(false);
+    }
+  }
+
+  function seleccionarResultado(r) {
+    const lat = parseFloat(r.lat).toFixed(6);
+    const lng = parseFloat(r.lon).toFixed(6);
+    setForm((prev) => ({ ...prev, lat, lng }));
+    setResultadosBusqueda([]);
+    setBusqueda('');
+  }
+
   // ── Modal ──────────────────────────────────────────────
   function abrirModalNuevo() {
     setEditIdx(null);
@@ -146,7 +182,14 @@ export default function NuevoTrabajoPage() {
     const { name, value } = e.target;
     setModalForm((prev) => ({
       ...prev,
-      materiales: prev.materiales.map((m, i) => i === idx ? { ...m, [name]: value } : m),
+      materiales: prev.materiales.map((m, i) => {
+        if (i !== idx) return m;
+        if (name === 'nombre') {
+          const encontrado = materialesDB.find((md) => md.nombre === value);
+          return { ...m, nombre: value, unidad: encontrado ? encontrado.unidad : m.unidad };
+        }
+        return { ...m, [name]: value };
+      }),
     }));
   }
 
@@ -264,6 +307,42 @@ export default function NuevoTrabajoPage() {
             {errorGPS && !gpsBloqueado && (
               <div className="alert alert-danger py-1 small mb-3">{errorGPS}</div>
             )}
+
+            {/* Buscador de dirección */}
+            <div className="mb-2">
+              <div className="input-group">
+                <input
+                  type="text"
+                  className="form-control"
+                  value={busqueda}
+                  onChange={(e) => { setBusqueda(e.target.value); setResultadosBusqueda([]); setErrorBusqueda(''); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleBuscar(); } }}
+                  placeholder="Buscar dirección o calle..."
+                />
+                <button type="button" className="btn btn-outline-primary" onClick={handleBuscar} disabled={buscando}>
+                  {buscando
+                    ? <span className="spinner-border spinner-border-sm"></span>
+                    : <i className="bi bi-search"></i>}
+                </button>
+              </div>
+              {errorBusqueda && <div className="text-danger small mt-1">{errorBusqueda}</div>}
+              {resultadosBusqueda.length > 0 && (
+                <div className="list-group mt-1 shadow-sm" style={{ zIndex: 1000, position: 'relative' }}>
+                  {resultadosBusqueda.map((r) => (
+                    <button
+                      key={r.place_id}
+                      type="button"
+                      className="list-group-item list-group-item-action small py-2 text-start"
+                      onClick={() => seleccionarResultado(r)}
+                    >
+                      <i className="bi bi-geo-alt me-2 text-primary"></i>
+                      {r.display_name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div style={{ position: 'relative', height: 260, borderRadius: 8, overflow: 'hidden', marginBottom: 8 }}>
               {!mapaListo ? (
                 <div className="d-flex flex-column align-items-center justify-content-center h-100 bg-light">
@@ -273,14 +352,14 @@ export default function NuevoTrabajoPage() {
               ) : (
                 <MapContainer
                   key={mapaKeyRef.current}
-                  center={[parseFloat(form.lat) || -38, parseFloat(form.lng) || -63]}
-                  zoom={form.lat ? 17 : 5}
+                  center={[parseFloat(form.lat) || DEFAULT_LAT, parseFloat(form.lng) || DEFAULT_LNG]}
+                  zoom={form.lat ? 17 : 13}
                   style={{ height: '100%', width: '100%' }}
                   scrollWheelZoom={false}
                 >
                   <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap' />
                   <Marker
-                    position={[parseFloat(form.lat) || -38, parseFloat(form.lng) || -63]}
+                    position={[parseFloat(form.lat) || DEFAULT_LAT, parseFloat(form.lng) || DEFAULT_LNG]}
                     draggable={true}
                     icon={iconoMarcador}
                     eventHandlers={{
@@ -475,10 +554,10 @@ export default function NuevoTrabajoPage() {
         {/* LINKS Y OBSERVACIONES */}
         <div className="card mb-3">
           <div className="card-header bg-light fw-semibold small">
-            <i className="bi bi-link-45deg me-1"></i> Links y observaciones
+            <i className="bi bi-chat-left-text me-1"></i> Observaciones
           </div>
           <div className="card-body">
-            <div className="mb-2">
+            {/* <div className="mb-2">
               <label className="form-label small fw-semibold">Link Google Drive</label>
               <input type="url" className="form-control" name="linkDrive"
                 value={form.linkDrive} onChange={handleChange} placeholder="https://drive.google.com/..." />
@@ -487,9 +566,8 @@ export default function NuevoTrabajoPage() {
               <label className="form-label small fw-semibold">Link My Maps</label>
               <input type="url" className="form-control" name="linkMyMaps"
                 value={form.linkMyMaps} onChange={handleChange} placeholder="https://mymaps.google.com/..." />
-            </div>
+            </div> */}
             <div>
-              <label className="form-label small fw-semibold">Observaciones</label>
               <textarea className="form-control" name="observaciones" rows={3}
                 value={form.observaciones} onChange={handleChange} placeholder="Notas adicionales..." />
             </div>
@@ -563,27 +641,36 @@ export default function NuevoTrabajoPage() {
                 <div className="d-flex justify-content-between align-items-center mb-2">
                   <span className="small fw-semibold"><i className="bi bi-box-seam me-1"></i>Materiales</span>
                   <button type="button" className="btn btn-outline-primary btn-sm py-0 px-2"
-                    onClick={agregarMaterialModal}>
+                    onClick={agregarMaterialModal} disabled={materialesDB.length === 0}>
                     <i className="bi bi-plus-lg me-1"></i>Agregar material
                   </button>
                 </div>
-                {modalForm.materiales.length === 0 ? (
+                {materialesDB.length === 0 ? (
+                  <div className="text-muted small text-center py-2 border rounded bg-light">
+                    <i className="bi bi-box-seam me-1"></i>
+                    No hay materiales configurados.{' '}
+                    <a href="/materiales" className="text-primary">Ir a Materiales</a>
+                  </div>
+                ) : modalForm.materiales.length === 0 ? (
                   <div className="text-muted small text-center py-2">Sin materiales</div>
                 ) : (
                   modalForm.materiales.map((mat, idx) => (
                     <div key={idx} className="d-flex gap-2 align-items-center mb-2">
                       <select className="form-select form-select-sm flex-grow-1"
                         name="nombre" value={mat.nombre} onChange={(e) => handleMaterialModal(idx, e)}>
-                        <option value="">Material...</option>
-                        {NOMBRES_MATERIAL.map((n) => <option key={n}>{n}</option>)}
+                        <option value="">Seleccionar...</option>
+                        {materialesDB.map((m) => (
+                          <option key={m.id} value={m.nombre}>
+                            {m.nombre} (stock: {m.stock} {m.unidad})
+                          </option>
+                        ))}
                       </select>
                       <input type="number" step="any" min="0" className="form-control form-control-sm"
                         style={{ width: 70 }} name="cantidad" value={mat.cantidad}
                         onChange={(e) => handleMaterialModal(idx, e)} placeholder="Cant." />
-                      <select className="form-select form-select-sm" style={{ width: 85 }}
-                        name="unidad" value={mat.unidad} onChange={(e) => handleMaterialModal(idx, e)}>
-                        {UNIDADES_MATERIAL.map((u) => <option key={u}>{u}</option>)}
-                      </select>
+                      <span className="small text-muted text-nowrap" style={{ minWidth: 40 }}>
+                        {mat.unidad}
+                      </span>
                       <button type="button" className="btn btn-sm btn-outline-danger py-0 px-2"
                         onClick={() => eliminarMaterialModal(idx)}>
                         <i className="bi bi-x-lg"></i>

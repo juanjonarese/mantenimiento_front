@@ -60,7 +60,7 @@ export default function MapaPage() {
 
   const centro = conUbicacion.length > 0
     ? [conUbicacion[0].lat, conUbicacion[0].lng]
-    : [-34.6037, -58.3816];
+    : [-26.8241, -65.2226];
 
   return (
     <div className="d-flex flex-column" style={{ height: 'calc(100vh - 56px)' }}>

@@ -217,17 +217,26 @@ const UsuariosPage = () => {
     : <span className="badge bg-secondary">Operario</span>;
 
   return (
-    <div className="container-fluid py-3 px-2 px-md-3">
-      <div className="card shadow-sm">
-        <div className="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-          <h5 className="mb-0 fw-bold">
-            <i className="bi bi-people me-2 text-primary"></i>Usuarios
-          </h5>
-          <button className="btn btn-success btn-sm" onClick={handleCrear}>
-            <i className="bi bi-person-plus me-1"></i>Nuevo usuario
-          </button>
-        </div>
+    <div className="lista-page">
 
+      {/* ── HEADER ── */}
+      <div className="page-header bg-white border-bottom px-3 px-lg-4 py-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div>
+          <h4 className="fw-bold mb-0">
+            <i className="bi bi-people me-2 text-primary"></i>Usuarios
+          </h4>
+          <small className="text-muted">
+            {usuarios.length} usuario{usuarios.length !== 1 ? 's' : ''} registrado{usuarios.length !== 1 ? 's' : ''}
+          </small>
+        </div>
+        <button className="btn btn-primary d-flex align-items-center gap-2" onClick={handleCrear}>
+          <i className="bi bi-person-plus"></i>
+          <span>Nuevo usuario</span>
+        </button>
+      </div>
+
+      <div className="container py-3" style={{ maxWidth: 1400 }}>
+        <div className="card shadow-sm">
         <div className="card-body p-2 p-md-3">
           {loading ? (
             <div className="text-center py-5">
@@ -303,8 +312,9 @@ const UsuariosPage = () => {
           )}
         </div>
 
-        <div className="card-footer bg-white text-muted text-center py-2 small">
-          Total: <strong>{usuarios.length}</strong> {usuarios.length === 1 ? "usuario" : "usuarios"}
+          <div className="card-footer bg-white text-muted text-center py-2 small">
+            Total: <strong>{usuarios.length}</strong> {usuarios.length === 1 ? "usuario" : "usuarios"}
+          </div>
         </div>
       </div>
     </div>
