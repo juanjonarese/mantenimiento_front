@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { cerrarTurno, obtenerTurnoActivo, abrirTurno } from "../services/api";
-import { obtenerMateriales } from "../db/db";
+import { cerrarTurno, obtenerTurnoActivo, abrirTurno, obtenerMaterialesCatalogo } from "../services/api";
 
 export default function CerrarTurnoPage() {
   const navigate = useNavigate();
@@ -23,12 +22,12 @@ export default function CerrarTurnoPage() {
   useEffect(() => {
     if (!localStorage.getItem("turnoId")) { navigate("/login"); return; }
 
-    Promise.all([obtenerTurnoActivo(), obtenerMateriales()])
+    Promise.all([obtenerTurnoActivo(), obtenerMaterialesCatalogo()])
       .then(([{ turno: t }, mats]) => {
         if (!t) { navigate("/login"); return; }
         setTurno(t);
         setCatalogo(mats);
-        if (mats.length > 0) setSelId(String(mats[0].id));
+        if (mats.length > 0) setSelId(String(mats[0]._id));
       })
       .catch(() => setError("No se pudo cargar la información. Verificá tu conexión."))
       .finally(() => setCargando(false));
@@ -41,24 +40,24 @@ export default function CerrarTurnoPage() {
     const cant = parseFloat(cantInput);
     if (!cantInput || isNaN(cant) || cant <= 0) return setErrorAgregar("Ingresá una cantidad mayor a 0");
 
-    const mat = catalogo.find((m) => String(m.id) === selId);
+    const mat = catalogo.find((m) => String(m._id) === selId);
     if (!mat) return;
 
     // Si ya está en la lista, actualiza la cantidad
     setListaUsados((prev) => {
-      const existe = prev.find((u) => String(u.id) === selId);
+      const existe = prev.find((u) => String(u._id) === selId);
       if (existe) {
         return prev.map((u) =>
-          String(u.id) === selId ? { ...u, cantidad: cant } : u
+          String(u._id) === selId ? { ...u, cantidad: cant } : u
         );
       }
-      return [...prev, { id: mat.id, nombre: mat.nombre, cantidad: cant, unidad: mat.unidad }];
+      return [...prev, { _id: mat._id, nombre: mat.nombre, cantidad: cant, unidad: mat.unidad }];
     });
     setCantInput("");
   }
 
   function handleEliminar(id) {
-    setListaUsados((prev) => prev.filter((u) => String(u.id) !== String(id)));
+    setListaUsados((prev) => prev.filter((u) => String(u._id) !== String(id)));
   }
 
   // ── Cerrar turno ────────────────────────────────────────────────────────
@@ -108,7 +107,7 @@ export default function CerrarTurnoPage() {
     );
   }
 
-  const matSeleccionado = catalogo.find((m) => String(m.id) === selId);
+  const matSeleccionado = catalogo.find((m) => String(m._id) === selId);
 
   return (
     <div className="container-fluid p-3 pb-5">
@@ -159,7 +158,7 @@ export default function CerrarTurnoPage() {
                     onChange={(e) => { setSelId(e.target.value); setErrorAgregar(""); }}
                   >
                     {catalogo.map((m) => (
-                      <option key={m.id} value={String(m.id)}>
+                      <option key={m._id} value={String(m._id)}>
                         {m.nombre}
                       </option>
                     ))}
@@ -199,7 +198,7 @@ export default function CerrarTurnoPage() {
                 ) : (
                   <div className="mt-3">
                     {listaUsados.map((u) => (
-                      <div key={u.id} className="d-flex align-items-center justify-content-between py-2 border-bottom">
+                      <div key={u._id} className="d-flex align-items-center justify-content-between py-2 border-bottom">
                         <span className="fw-semibold small">{u.nombre}</span>
                         <div className="d-flex align-items-center gap-2">
                           <span className="badge bg-primary fs-6">
@@ -208,7 +207,7 @@ export default function CerrarTurnoPage() {
                           <button
                             type="button"
                             className="btn btn-sm btn-outline-danger py-0 px-2"
-                            onClick={() => handleEliminar(u.id)}
+                            onClick={() => handleEliminar(u._id)}
                           >
                             <i className="bi bi-x-lg"></i>
                           </button>

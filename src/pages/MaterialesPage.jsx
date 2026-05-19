@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react';
-import { obtenerMateriales, guardarMaterial, eliminarMaterial } from '../db/db';
+import {
+  obtenerTodosMaterialesCatalogo,
+  crearMaterialCatalogo,
+  actualizarMaterialCatalogo,
+  eliminarMaterialCatalogo,
+} from '../services/api';
 
 const UNIDADES = ['litros', 'kg', 'unidades', 'm²', 'bolsas', 'tambores'];
 const NOMBRES_SUGERIDOS = [
@@ -15,13 +20,22 @@ function StockBadge({ stock }) {
 
 export default function MaterialesPage() {
   const [materiales, setMateriales] = useState([]);
+  const [cargando, setCargando] = useState(true);
   const [modalAbierto, setModalAbierto] = useState(false);
   const [form, setForm] = useState(MODAL_VACIO);
   const [editId, setEditId] = useState(null);
   const [error, setError] = useState('');
+  const [guardando, setGuardando] = useState(false);
   const [confirmEliminar, setConfirmEliminar] = useState(null);
 
-  const cargar = () => obtenerMateriales().then(setMateriales);
+  const cargar = () => {
+    setCargando(true);
+    obtenerTodosMaterialesCatalogo()
+      .then(({ materiales: m }) => setMateriales(m || []))
+      .catch(() => setError('No se pudo conectar con el servidor'))
+      .finally(() => setCargando(false));
+  };
+
   useEffect(() => { cargar(); }, []);
 
   function abrirNuevo() {
@@ -32,7 +46,7 @@ export default function MaterialesPage() {
   }
 
   function abrirEditar(mat) {
-    setEditId(mat.id);
+    setEditId(mat._id);
     setForm({ codigo: mat.codigo || '', nombre: mat.nombre, stock: String(mat.stock), unidad: mat.unidad });
     setError('');
     setModalAbierto(true);
@@ -46,21 +60,37 @@ export default function MaterialesPage() {
     if (!form.nombre.trim()) return setError('Ingresá el nombre del material');
     if (form.stock === '' || isNaN(Number(form.stock))) return setError('Ingresá un stock válido');
     setError('');
-    await guardarMaterial({
-      id: editId ?? Date.now(),
-      codigo: form.codigo.trim(),
-      nombre: form.nombre.trim(),
-      stock: parseFloat(form.stock),
-      unidad: form.unidad,
-    });
-    setModalAbierto(false);
-    cargar();
+    setGuardando(true);
+    try {
+      const datos = {
+        codigo: form.codigo.trim(),
+        nombre: form.nombre.trim(),
+        stock: parseFloat(form.stock),
+        unidad: form.unidad,
+      };
+      if (editId) {
+        await actualizarMaterialCatalogo(editId, datos);
+      } else {
+        await crearMaterialCatalogo(datos);
+      }
+      setModalAbierto(false);
+      cargar();
+    } catch (err) {
+      setError(err.message || 'Error al guardar');
+    } finally {
+      setGuardando(false);
+    }
   }
 
   async function handleEliminar(id) {
-    await eliminarMaterial(id);
-    setConfirmEliminar(null);
-    cargar();
+    try {
+      await eliminarMaterialCatalogo(id);
+      setConfirmEliminar(null);
+      cargar();
+    } catch (err) {
+      setError(err.message || 'Error al eliminar');
+      setConfirmEliminar(null);
+    }
   }
 
   return (
@@ -84,7 +114,16 @@ export default function MaterialesPage() {
 
       {/* ── CONTENIDO ── */}
       <div className="container py-3" style={{ maxWidth: 1400 }}>
-        {materiales.length === 0 ? (
+
+        {error && !modalAbierto && (
+          <div className="alert alert-danger">{error}</div>
+        )}
+
+        {cargando ? (
+          <div className="d-flex justify-content-center py-5">
+            <div className="spinner-border text-primary"></div>
+          </div>
+        ) : materiales.length === 0 ? (
           <div className="card text-center py-5 text-muted">
             <i className="bi bi-box display-4 mb-3 d-block"></i>
             <p className="mb-3">No hay materiales registrados</p>
@@ -109,7 +148,7 @@ export default function MaterialesPage() {
                 </thead>
                 <tbody>
                   {materiales.map((mat) => (
-                    <tr key={mat.id}>
+                    <tr key={mat._id}>
                       <td className="d-none d-sm-table-cell">
                         {mat.codigo
                           ? <span className="badge bg-secondary fw-normal">{mat.codigo}</span>
@@ -131,7 +170,6 @@ export default function MaterialesPage() {
                             onClick={() => abrirEditar(mat)}
                           >
                             <i className="bi bi-pencil"></i>
-                            {/* Texto solo en md+ */}
                             <span className="d-none d-md-inline">Editar</span>
                           </button>
                           <button
@@ -167,27 +205,14 @@ export default function MaterialesPage() {
               <div className="modal-body">
                 <div className="mb-3">
                   <label className="form-label fw-semibold">Código</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    name="codigo"
-                    value={form.codigo}
-                    onChange={handleChange}
-                    placeholder="Ej: MAT-001"
-                    autoFocus
-                  />
+                  <input type="text" className="form-control" name="codigo"
+                    value={form.codigo} onChange={handleChange} placeholder="Ej: MAT-001" autoFocus />
                 </div>
                 <div className="mb-3">
                   <label className="form-label fw-semibold">Nombre *</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    name="nombre"
-                    value={form.nombre}
-                    onChange={handleChange}
-                    placeholder="Ej: Pintura blanca"
-                    list="sugerencias-nombres"
-                  />
+                  <input type="text" className="form-control" name="nombre"
+                    value={form.nombre} onChange={handleChange} placeholder="Ej: Pintura blanca"
+                    list="sugerencias-nombres" />
                   <datalist id="sugerencias-nombres">
                     {NOMBRES_SUGERIDOS.map((n) => <option key={n} value={n} />)}
                   </datalist>
@@ -195,16 +220,8 @@ export default function MaterialesPage() {
                 <div className="row g-3">
                   <div className="col-6">
                     <label className="form-label fw-semibold">Stock *</label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      name="stock"
-                      value={form.stock}
-                      onChange={handleChange}
-                      min="0"
-                      step="any"
-                      placeholder="0"
-                    />
+                    <input type="number" className="form-control" name="stock"
+                      value={form.stock} onChange={handleChange} min="0" step="any" placeholder="0" />
                   </div>
                   <div className="col-6">
                     <label className="form-label fw-semibold">Unidad *</label>
@@ -216,12 +233,14 @@ export default function MaterialesPage() {
                 {error && <div className="alert alert-danger py-2 small mt-3">{error}</div>}
               </div>
               <div className="modal-footer">
-                <button className="btn btn-outline-secondary" onClick={() => setModalAbierto(false)}>
+                <button className="btn btn-outline-secondary" onClick={() => setModalAbierto(false)} disabled={guardando}>
                   Cancelar
                 </button>
-                <button className="btn btn-primary" onClick={handleGuardar}>
-                  <i className="bi bi-check-lg me-1"></i>
-                  {editId ? 'Guardar cambios' : 'Agregar material'}
+                <button className="btn btn-primary" onClick={handleGuardar} disabled={guardando}>
+                  {guardando
+                    ? <span className="spinner-border spinner-border-sm"></span>
+                    : <><i className="bi bi-check-lg me-1"></i>{editId ? 'Guardar cambios' : 'Agregar material'}</>
+                  }
                 </button>
               </div>
             </div>
@@ -237,13 +256,13 @@ export default function MaterialesPage() {
               <div className="modal-body text-center py-4">
                 <i className="bi bi-exclamation-triangle-fill text-danger display-5 mb-3 d-block"></i>
                 <p className="mb-1 fw-semibold">¿Eliminar material?</p>
-                <p className="text-muted small">"{confirmEliminar.nombre}" será eliminado permanentemente.</p>
+                <p className="text-muted small">"{confirmEliminar.nombre}" será eliminado.</p>
               </div>
               <div className="modal-footer justify-content-center gap-2">
                 <button className="btn btn-outline-secondary" onClick={() => setConfirmEliminar(null)}>
                   Cancelar
                 </button>
-                <button className="btn btn-danger" onClick={() => handleEliminar(confirmEliminar.id)}>
+                <button className="btn btn-danger" onClick={() => handleEliminar(confirmEliminar._id)}>
                   <i className="bi bi-trash me-1"></i>Eliminar
                 </button>
               </div>

@@ -173,6 +173,53 @@ export const obtenerTodosTurnos = async () => {
   return handleResponse(response);
 };
 
+// ============= MATERIALES CATÁLOGO =============
+
+export const obtenerMaterialesCatalogo = async () => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/materiales`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return handleResponse(response);
+};
+
+export const obtenerTodosMaterialesCatalogo = async () => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/materiales/todos`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return handleResponse(response);
+};
+
+export const crearMaterialCatalogo = async (datos) => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/materiales`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(datos),
+  });
+  return handleResponse(response);
+};
+
+export const actualizarMaterialCatalogo = async (id, datos) => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/materiales/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(datos),
+  });
+  return handleResponse(response);
+};
+
+export const eliminarMaterialCatalogo = async (id) => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/materiales/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return handleResponse(response);
+};
+
 // ============= TIPOS DE TAREA =============
 
 export const obtenerTiposTarea = async (todos = false) => {
