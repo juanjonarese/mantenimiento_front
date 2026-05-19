@@ -62,6 +62,7 @@ export default function NuevoTrabajoPage() {
   const [modalForm, setModalForm] = useState({ ...TRABAJO_VACIO });
   const [errorModal, setErrorModal] = useState('');
   const [materialesDB, setMaterialesDB] = useState([]);
+  const [cantMateriales, setCantMateriales] = useState({});
 
   const mapaKeyRef = useRef('default');
   const fileRef = useRef();
@@ -152,9 +153,20 @@ export default function NuevoTrabajoPage() {
   }
 
   // ── Modal ──────────────────────────────────────────────
+  function initCantMateriales(materialesExistentes = []) {
+    const mapa = {};
+    materialesDB.forEach((m) => { mapa[m.id] = ''; });
+    materialesExistentes.forEach((m) => {
+      const encontrado = materialesDB.find((md) => md.nombre === m.nombre);
+      if (encontrado) mapa[encontrado.id] = String(m.cantidad);
+    });
+    return mapa;
+  }
+
   function abrirModalNuevo() {
     setEditIdx(null);
     setModalForm({ ...TRABAJO_VACIO });
+    setCantMateriales(initCantMateriales());
     setErrorModal('');
     setModalAbierto(true);
   }
@@ -162,6 +174,7 @@ export default function NuevoTrabajoPage() {
   function abrirModalEditar(idx) {
     setEditIdx(idx);
     setModalForm({ ...form.trabajos[idx] });
+    setCantMateriales(initCantMateriales(form.trabajos[idx].materiales || []));
     setErrorModal('');
     setModalAbierto(true);
   }
@@ -174,40 +187,18 @@ export default function NuevoTrabajoPage() {
     setModalForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }
 
-  function agregarMaterialModal() {
-    setModalForm((prev) => ({ ...prev, materiales: [...prev.materiales, { ...MATERIAL_VACIO }] }));
-  }
-
-  function handleMaterialModal(idx, e) {
-    const { name, value } = e.target;
-    setModalForm((prev) => ({
-      ...prev,
-      materiales: prev.materiales.map((m, i) => {
-        if (i !== idx) return m;
-        if (name === 'nombre') {
-          const encontrado = materialesDB.find((md) => md.nombre === value);
-          return { ...m, nombre: value, unidad: encontrado ? encontrado.unidad : m.unidad };
-        }
-        return { ...m, [name]: value };
-      }),
-    }));
-  }
-
-  function eliminarMaterialModal(idx) {
-    setModalForm((prev) => ({ ...prev, materiales: prev.materiales.filter((_, i) => i !== idx) }));
-  }
-
   function guardarModal() {
     if (!modalForm.tipoTrabajo) return setErrorModal('Seleccioná el tipo de trabajo');
     if (!modalForm.largo || !modalForm.ancho || !modalForm.cantidad) return setErrorModal('Completá las medidas');
     setErrorModal('');
+    const materialesUsados = materialesDB
+      .filter((m) => cantMateriales[m.id] !== '' && parseFloat(cantMateriales[m.id]) > 0)
+      .map((m) => ({ nombre: m.nombre, cantidad: parseFloat(cantMateriales[m.id]), unidad: m.unidad }));
     setForm((prev) => {
       const trabajos = [...prev.trabajos];
-      if (editIdx === null) {
-        trabajos.push({ ...modalForm });
-      } else {
-        trabajos[editIdx] = { ...modalForm };
-      }
+      const item = { ...modalForm, materiales: materialesUsados };
+      if (editIdx === null) trabajos.push(item);
+      else trabajos[editIdx] = item;
       return { ...prev, trabajos };
     });
     setModalAbierto(false);
@@ -638,43 +629,33 @@ export default function NuevoTrabajoPage() {
                 )}
 
                 {/* Materiales */}
-                <div className="d-flex justify-content-between align-items-center mb-2">
-                  <span className="small fw-semibold"><i className="bi bi-box-seam me-1"></i>Materiales</span>
-                  <button type="button" className="btn btn-outline-primary btn-sm py-0 px-2"
-                    onClick={agregarMaterialModal} disabled={materialesDB.length === 0}>
-                    <i className="bi bi-plus-lg me-1"></i>Agregar material
-                  </button>
+                <div className="small fw-semibold mb-2">
+                  <i className="bi bi-box-seam me-1"></i>Materiales utilizados
                 </div>
                 {materialesDB.length === 0 ? (
                   <div className="text-muted small text-center py-2 border rounded bg-light">
                     <i className="bi bi-box-seam me-1"></i>
-                    No hay materiales configurados.{' '}
-                    <a href="/materiales" className="text-primary">Ir a Materiales</a>
+                    No hay materiales configurados.
                   </div>
-                ) : modalForm.materiales.length === 0 ? (
-                  <div className="text-muted small text-center py-2">Sin materiales</div>
                 ) : (
-                  modalForm.materiales.map((mat, idx) => (
-                    <div key={idx} className="d-flex gap-2 align-items-center mb-2">
-                      <select className="form-select form-select-sm flex-grow-1"
-                        name="nombre" value={mat.nombre} onChange={(e) => handleMaterialModal(idx, e)}>
-                        <option value="">Seleccionar...</option>
-                        {materialesDB.map((m) => (
-                          <option key={m.id} value={m.nombre}>
-                            {m.nombre} (stock: {m.stock} {m.unidad})
-                          </option>
-                        ))}
-                      </select>
-                      <input type="number" step="any" min="0" className="form-control form-control-sm"
-                        style={{ width: 70 }} name="cantidad" value={mat.cantidad}
-                        onChange={(e) => handleMaterialModal(idx, e)} placeholder="Cant." />
-                      <span className="small text-muted text-nowrap" style={{ minWidth: 40 }}>
-                        {mat.unidad}
+                  materialesDB.map((m) => (
+                    <div key={m.id} className="d-flex align-items-center gap-2 mb-2">
+                      <span className="flex-grow-1 small">{m.nombre}</span>
+                      <input
+                        type="number"
+                        step="any"
+                        min="0"
+                        className="form-control form-control-sm text-center"
+                        style={{ width: 80 }}
+                        placeholder="0"
+                        value={cantMateriales[m.id] ?? ''}
+                        onChange={(e) =>
+                          setCantMateriales((prev) => ({ ...prev, [m.id]: e.target.value }))
+                        }
+                      />
+                      <span className="small text-muted text-nowrap" style={{ minWidth: 45 }}>
+                        {m.unidad}
                       </span>
-                      <button type="button" className="btn btn-sm btn-outline-danger py-0 px-2"
-                        onClick={() => eliminarMaterialModal(idx)}>
-                        <i className="bi bi-x-lg"></i>
-                      </button>
                     </div>
                   ))
                 )}
