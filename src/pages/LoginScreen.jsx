@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { loginUsuario } from "../services/api";
+import { loginUsuario, obtenerTurnoActivo, abrirTurno } from "../services/api";
 import "../css/Login.css";
 import Footer from "../components/Footer";
 
@@ -40,7 +40,25 @@ const LoginScreen = () => {
       localStorage.setItem("isAuthenticated", "true");
       localStorage.setItem("token", data.token);
       localStorage.setItem("email", formData.email.trim());
-      localStorage.setItem("rol", data.rol || "operario");
+      localStorage.setItem("rol", data.rol || "supervisor");
+      localStorage.setItem("nombre", data.nombre || "");
+
+      if (data.rol === "supervisor") {
+        try {
+          const { turno } = await obtenerTurnoActivo();
+          if (turno) {
+            localStorage.setItem("turnoId", turno._id);
+            navigate("/cerrar-turno?pendiente=1");
+          } else {
+            const { turno: nuevoTurno } = await abrirTurno();
+            localStorage.setItem("turnoId", nuevoTurno._id);
+            navigate("/turno");
+          }
+        } catch {
+          navigate("/turno");
+        }
+        return;
+      }
 
       navigate("/");
     } catch (err) {

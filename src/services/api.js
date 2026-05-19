@@ -5,8 +5,13 @@ const API_URL = IS_DEV
   ? "http://localhost:3001/api"
   : (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
-async function handleResponse(response) {
+async function handleResponse(response, esLogin = false) {
   const data = await response.json();
+  if (response.status === 401 && !esLogin) {
+    localStorage.clear();
+    window.location.href = "/login";
+    throw new Error("Sesión expirada");
+  }
   if (!response.ok) throw new Error(data.msg || "Error en la petición");
   return data;
 }
@@ -22,7 +27,7 @@ export const loginUsuario = async (email, password) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-      return handleResponse(response);
+      return handleResponse(response, true);
     } catch {
       // Backend local no disponible — validar contra usuario guardado en localStorage
       const usuarioLocal = JSON.parse(localStorage.getItem("usuarioLocal") || "null");
@@ -38,7 +43,7 @@ export const loginUsuario = async (email, password) => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
   });
-  return handleResponse(response);
+  return handleResponse(response, true);
 };
 
 export const obtenerUsuarios = async () => {
@@ -126,6 +131,82 @@ export const obtenerEstadisticas = async () => {
   if (IS_DEV) return { estadisticas: null };
   const token = localStorage.getItem("token");
   const response = await fetch(`${API_URL}/trabajos/estadisticas`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return handleResponse(response);
+};
+
+// ============= TURNOS =============
+
+export const abrirTurno = async () => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/turnos/abrir`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return handleResponse(response);
+};
+
+export const obtenerTurnoActivo = async () => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/turnos/activo`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return handleResponse(response);
+};
+
+export const cerrarTurno = async (id, datos) => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/turnos/${id}/cerrar`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(datos),
+  });
+  return handleResponse(response);
+};
+
+export const obtenerTodosTurnos = async () => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/turnos`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return handleResponse(response);
+};
+
+// ============= TIPOS DE TAREA =============
+
+export const obtenerTiposTarea = async (todos = false) => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/tipos-tarea${todos ? "?todos=true" : ""}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return handleResponse(response);
+};
+
+export const crearTipoTarea = async (datos) => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/tipos-tarea`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(datos),
+  });
+  return handleResponse(response);
+};
+
+export const actualizarTipoTarea = async (id, datos) => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/tipos-tarea/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(datos),
+  });
+  return handleResponse(response);
+};
+
+export const toggleTipoTarea = async (id) => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/tipos-tarea/${id}/toggle`, {
+    method: "PATCH",
     headers: { Authorization: `Bearer ${token}` },
   });
   return handleResponse(response);

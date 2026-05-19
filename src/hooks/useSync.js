@@ -44,6 +44,8 @@ export function useSync() {
         documentacionCertificacion: t.documentacionCertificacion,
         notasCertificacion: t.notasCertificacion,
         fechaCertificacion: t.fechaCertificacion,
+        emailRevision: t.emailRevision,
+        docRevision: t.docRevision,
         observaciones: t.observaciones,
         linkDrive: t.linkDrive,
         linkMyMaps: t.linkMyMaps,

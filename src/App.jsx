@@ -13,6 +13,9 @@ const PanelPage           = lazy(() => import("./pages/PanelPage"));
 const CertificacionesPage = lazy(() => import("./pages/CertificacionesPage"));
 const UsuariosPage        = lazy(() => import("./pages/UsuariosPage"));
 const MaterialesPage      = lazy(() => import("./pages/MaterialesPage"));
+const TiposTareaPage      = lazy(() => import("./pages/TiposTareaPage"));
+const TurnoPage           = lazy(() => import("./pages/TurnoPage"));
+const CerrarTurnoPage     = lazy(() => import("./pages/CerrarTurnoPage"));
 
 const Spinner = () => (
   <div className="d-flex justify-content-center align-items-center" style={{ height: '60vh' }}>
@@ -52,7 +55,7 @@ function App() {
           </Layout></ProtectedRoute>
         } />
         <Route path="/certificaciones" element={
-          <ProtectedRoute roles={['admin']}><Layout>
+          <ProtectedRoute roles={['admin']}><Layout fullWidth>
             <Suspense fallback={<Spinner />}><CertificacionesPage /></Suspense>
           </Layout></ProtectedRoute>
         } />
@@ -64,6 +67,23 @@ function App() {
         <Route path="/materiales" element={
           <ProtectedRoute roles={['admin']}><Layout fullWidth>
             <Suspense fallback={<Spinner />}><MaterialesPage /></Suspense>
+          </Layout></ProtectedRoute>
+        } />
+        <Route path="/tipos-tarea" element={
+          <ProtectedRoute roles={['admin']}><Layout fullWidth>
+            <Suspense fallback={<Spinner />}><TiposTareaPage /></Suspense>
+          </Layout></ProtectedRoute>
+        } />
+
+        {/* Supervisor */}
+        <Route path="/turno" element={
+          <ProtectedRoute roles={['supervisor']}><Layout>
+            <Suspense fallback={<Spinner />}><TurnoPage /></Suspense>
+          </Layout></ProtectedRoute>
+        } />
+        <Route path="/cerrar-turno" element={
+          <ProtectedRoute roles={['supervisor']}><Layout>
+            <Suspense fallback={<Spinner />}><CerrarTurnoPage /></Suspense>
           </Layout></ProtectedRoute>
         } />
 

@@ -66,6 +66,22 @@ export async function marcarTodosSincronizados(ids) {
   await tx.done;
 }
 
+// ============= SYNC DESDE BACKEND =============
+
+// Importa trabajos del backend al IndexedDB local.
+// Usa idLocal como clave. No sobreescribe items pendientes de sync.
+export async function importarDesdeBackend(trabajosBackend) {
+  const db = await getDB();
+  const tx = db.transaction(STORE, 'readwrite');
+  for (const t of trabajosBackend) {
+    if (!t.idLocal) continue;
+    const existente = await tx.store.get(t.idLocal);
+    if (existente && !existente.sincronizado) continue; // respeta cambios locales pendientes
+    await tx.store.put({ ...t, id: t.idLocal, sincronizado: true });
+  }
+  await tx.done;
+}
+
 // ============= MATERIALES =============
 
 export async function obtenerMateriales() {

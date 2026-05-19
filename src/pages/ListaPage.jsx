@@ -1,14 +1,31 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { obtenerTrabajos, eliminarTrabajo } from '../db/db';
+import { obtenerTrabajos, eliminarTrabajo, importarDesdeBackend } from '../db/db';
+import { obtenerTrabajosBackend } from '../services/api';
 import { COLORES_ESTADO_OP, COLORES_ESTADO_ADMIN } from '../constants';
 
 export default function ListaPage() {
   const [trabajos, setTrabajos] = useState([]);
   const [filtroEstado, setFiltroEstado] = useState('');
   const [filtroCertif, setFiltroCertif] = useState('');
+  const [sincronizando, setSincronizando] = useState(false);
 
-  const cargar = async () => setTrabajos(await obtenerTrabajos());
+  const cargar = async () => {
+    // Intentar bajar datos del backend al IndexedDB local antes de leer
+    if (navigator.onLine) {
+      setSincronizando(true);
+      try {
+        const { trabajos: backendData } = await obtenerTrabajosBackend();
+        if (backendData?.length) await importarDesdeBackend(backendData);
+      } catch {
+        // Sin conexión o error — usa solo el IndexedDB local
+      } finally {
+        setSincronizando(false);
+      }
+    }
+    setTrabajos(await obtenerTrabajos());
+  };
+
   useEffect(() => { cargar(); }, []);
 
   async function handleEliminar(id) {
@@ -35,6 +52,9 @@ export default function ListaPage() {
           <div>
             <h4 className="fw-bold mb-0">
               <i className="bi bi-list-ul me-2 text-primary"></i>Trabajos
+              {sincronizando && (
+                <span className="spinner-border spinner-border-sm text-primary ms-2" style={{ width: 16, height: 16, borderWidth: 2 }}></span>
+              )}
             </h4>
             <small className="text-muted">
               {filtrados.length} de {trabajos.length} trabajo{trabajos.length !== 1 ? 's' : ''}
@@ -62,6 +82,7 @@ export default function ListaPage() {
               onChange={(e) => setFiltroCertif(e.target.value)}>
               <option value="">Toda certificación</option>
               <option>Sin certificar</option>
+              <option>En revisión</option>
               <option>Certificado</option>
               <option>Rechazado</option>
             </select>
