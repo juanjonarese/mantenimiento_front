@@ -35,7 +35,12 @@ export function useSync() {
         lng: t.lng,
         calle1: t.calle1,
         calle2: t.calle2,
-        items: t.items || [],
+        items: (t.items || []).map((item) => ({
+          ...item,
+          fotos: (item.fotos || []).map(({ nombre, tipo, driveUrl, subido }) => ({
+            nombre, tipo, driveUrl: driveUrl || null, subido: subido || false,
+          })),
+        })),
         materiales: t.materiales || [],
         superficie: t.superficie,
         estadoOperativo: t.estadoOperativo,

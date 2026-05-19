@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { guardarTrabajo, obtenerTrabajoPorId, obtenerMateriales } from '../db/db';
+import { guardarTrabajo, obtenerTrabajoPorId } from '../db/db';
 import { useGPS } from '../hooks/useGPS';
 import { comprimirMedia } from '../utils/comprimirMedia';
 import { TIPOS_TRABAJO, ESTADOS_OPERATIVO, ESTADOS_ADMIN } from '../constants';
@@ -25,7 +25,7 @@ function MoverMapa({ lat, lng }) {
 }
 
 const MATERIAL_VACIO = { nombre: '', cantidad: '', unidad: 'litros' };
-const TRABAJO_VACIO = { tipoTrabajo: '', largo: '', ancho: '', cantidad: '', materiales: [] };
+const TRABAJO_VACIO = { tipoTrabajo: '', largo: '', ancho: '', cantidad: '', fotos: [] };
 
 const DEFAULT_LAT = -26.8241;
 const DEFAULT_LNG = -65.2226;
@@ -61,15 +61,12 @@ export default function NuevoTrabajoPage() {
   const [editIdx, setEditIdx] = useState(null);
   const [modalForm, setModalForm] = useState({ ...TRABAJO_VACIO });
   const [errorModal, setErrorModal] = useState('');
-  const [materialesDB, setMaterialesDB] = useState([]);
-  const [cantMateriales, setCantMateriales] = useState({});
 
   const mapaKeyRef = useRef('default');
   const fileRef = useRef();
+  const modalFileRef = useRef();
   const esEdicion = Boolean(id);
   const esAdmin = true;
-
-  useEffect(() => { obtenerMateriales().then(setMaterialesDB); }, []);
 
   useEffect(() => {
     if (id) {
@@ -81,7 +78,7 @@ export default function NuevoTrabajoPage() {
           largo: String(item.largo || ''),
           ancho: String(item.ancho || ''),
           cantidad: String(item.cantidad || ''),
-          materiales: item.materiales || (idx === 0 ? (t.materiales || []) : []),
+          fotos: item.fotos || [],
         }));
         setForm({
           calle1: t.calle1, calle2: t.calle2,
@@ -153,20 +150,9 @@ export default function NuevoTrabajoPage() {
   }
 
   // ── Modal ──────────────────────────────────────────────
-  function initCantMateriales(materialesExistentes = []) {
-    const mapa = {};
-    materialesDB.forEach((m) => { mapa[m.id] = ''; });
-    materialesExistentes.forEach((m) => {
-      const encontrado = materialesDB.find((md) => md.nombre === m.nombre);
-      if (encontrado) mapa[encontrado.id] = String(m.cantidad);
-    });
-    return mapa;
-  }
-
   function abrirModalNuevo() {
     setEditIdx(null);
     setModalForm({ ...TRABAJO_VACIO });
-    setCantMateriales(initCantMateriales());
     setErrorModal('');
     setModalAbierto(true);
   }
@@ -174,7 +160,6 @@ export default function NuevoTrabajoPage() {
   function abrirModalEditar(idx) {
     setEditIdx(idx);
     setModalForm({ ...form.trabajos[idx] });
-    setCantMateriales(initCantMateriales(form.trabajos[idx].materiales || []));
     setErrorModal('');
     setModalAbierto(true);
   }
@@ -187,18 +172,34 @@ export default function NuevoTrabajoPage() {
     setModalForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }
 
+  async function handleFotosModal(e) {
+    const archivos = Array.from(e.target.files);
+    if (!archivos.length) return;
+    setComprimiendo(true);
+    setErrorModal('');
+    try {
+      const nuevas = await Promise.all(archivos.map(comprimirMedia));
+      setModalForm((prev) => ({ ...prev, fotos: [...(prev.fotos || []), ...nuevas] }));
+    } catch (err) {
+      setErrorModal(err.message);
+    } finally {
+      setComprimiendo(false);
+      e.target.value = '';
+    }
+  }
+
+  function eliminarFotoModal(idx) {
+    setModalForm((prev) => ({ ...prev, fotos: prev.fotos.filter((_, i) => i !== idx) }));
+  }
+
   function guardarModal() {
     if (!modalForm.tipoTrabajo) return setErrorModal('Seleccioná el tipo de trabajo');
     if (!modalForm.largo || !modalForm.ancho || !modalForm.cantidad) return setErrorModal('Completá las medidas');
     setErrorModal('');
-    const materialesUsados = materialesDB
-      .filter((m) => cantMateriales[m.id] !== '' && parseFloat(cantMateriales[m.id]) > 0)
-      .map((m) => ({ nombre: m.nombre, cantidad: parseFloat(cantMateriales[m.id]), unidad: m.unidad }));
     setForm((prev) => {
       const trabajos = [...prev.trabajos];
-      const item = { ...modalForm, materiales: materialesUsados };
-      if (editIdx === null) trabajos.push(item);
-      else trabajos[editIdx] = item;
+      if (editIdx === null) trabajos.push({ ...modalForm });
+      else trabajos[editIdx] = { ...modalForm };
       return { ...prev, trabajos };
     });
     setModalAbierto(false);
@@ -237,7 +238,7 @@ export default function NuevoTrabajoPage() {
         return {
           tipoTrabajo: t.tipoTrabajo, largo: l, ancho: a, cantidad: c,
           superficie: parseFloat((l * a * c).toFixed(2)),
-          materiales: t.materiales,
+          fotos: t.fotos || [],
         };
       });
       const trabajo = {
@@ -628,37 +629,55 @@ export default function NuevoTrabajoPage() {
                   </div>
                 )}
 
-                {/* Materiales */}
-                <div className="small fw-semibold mb-2">
-                  <i className="bi bi-box-seam me-1"></i>Materiales utilizados
-                </div>
-                {materialesDB.length === 0 ? (
-                  <div className="text-muted small text-center py-2 border rounded bg-light">
-                    <i className="bi bi-box-seam me-1"></i>
-                    No hay materiales configurados.
+                {/* Fotos y videos de la tarea */}
+                <div className="border-top pt-3 mt-1">
+                  <div className="small fw-semibold mb-2">
+                    <i className="bi bi-camera me-1"></i>Fotos / videos de esta tarea
                   </div>
-                ) : (
-                  materialesDB.map((m) => (
-                    <div key={m.id} className="d-flex align-items-center gap-2 mb-2">
-                      <span className="flex-grow-1 small">{m.nombre}</span>
-                      <input
-                        type="number"
-                        step="any"
-                        min="0"
-                        className="form-control form-control-sm text-center"
-                        style={{ width: 80 }}
-                        placeholder="0"
-                        value={cantMateriales[m.id] ?? ''}
-                        onChange={(e) =>
-                          setCantMateriales((prev) => ({ ...prev, [m.id]: e.target.value }))
-                        }
-                      />
-                      <span className="small text-muted text-nowrap" style={{ minWidth: 45 }}>
-                        {m.unidad}
-                      </span>
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary w-100 mb-2"
+                    onClick={() => modalFileRef.current.click()}
+                    disabled={comprimiendo}
+                  >
+                    {comprimiendo
+                      ? <><span className="spinner-border spinner-border-sm me-2"></span>Comprimiendo...</>
+                      : <><i className="bi bi-camera me-1"></i>Adjuntar foto o video</>}
+                  </button>
+                  <input
+                    ref={modalFileRef}
+                    type="file"
+                    multiple
+                    accept="image/*,video/*"
+                    capture="environment"
+                    className="d-none"
+                    onChange={handleFotosModal}
+                  />
+                  {(modalForm.fotos || []).length > 0 && (
+                    <div className="d-flex flex-wrap gap-2 mt-2">
+                      {(modalForm.fotos || []).map((f, i) => (
+                        <div key={i} className="position-relative">
+                          {f.tipo?.startsWith('image') ? (
+                            <img src={f.data} alt={f.nombre}
+                              style={{ width: 70, height: 70, objectFit: 'cover' }}
+                              className="rounded border" />
+                          ) : (
+                            <div className="bg-light border rounded d-flex align-items-center justify-content-center"
+                              style={{ width: 70, height: 70 }}>
+                              <i className="bi bi-camera-video text-secondary fs-4"></i>
+                            </div>
+                          )}
+                          <button
+                            type="button"
+                            className="btn btn-danger btn-sm position-absolute top-0 end-0 p-0"
+                            style={{ width: 18, height: 18, fontSize: 10, lineHeight: 1 }}
+                            onClick={() => eliminarFotoModal(i)}
+                          >×</button>
+                        </div>
+                      ))}
                     </div>
-                  ))
-                )}
+                  )}
+                </div>
 
                 {errorModal && <div className="alert alert-danger py-2 small mt-3">{errorModal}</div>}
               </div>

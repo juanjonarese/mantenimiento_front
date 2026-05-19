@@ -90,7 +90,7 @@ export default function DetallePage() {
         </div>
         <div className="card-body">
           {(trabajo.items || [{ tipoTrabajo: trabajo.tipoTrabajo, largo: trabajo.largo, ancho: trabajo.ancho, cantidad: trabajo.cantidad, superficie: trabajo.superficie }]).map((item, idx, arr) => (
-            <div key={idx} className={idx > 0 ? 'border-top pt-2 mt-2' : ''}>
+            <div key={idx} className={idx > 0 ? 'border-top pt-3 mt-3' : ''}>
               <div className="mb-2">
                 <span className="badge bg-primary">{item.tipoTrabajo}</span>
               </div>
@@ -115,7 +115,34 @@ export default function DetallePage() {
                 </div>
               </div>
               {arr.length > 1 && item.superficie > 0 && (
-                <div className="text-end small text-muted">{item.superficie} m²</div>
+                <div className="text-end small text-muted mb-2">{item.superficie} m²</div>
+              )}
+              {item.fotos?.length > 0 && (
+                <div className="mt-2">
+                  <div className="small text-muted mb-1">
+                    <i className="bi bi-camera me-1"></i>
+                    {item.fotos.length} foto{item.fotos.length !== 1 ? 's' : ''} / video{item.fotos.length !== 1 ? 's' : ''}
+                  </div>
+                  <div className="d-flex flex-wrap gap-2">
+                    {item.fotos.map((f, i) => (
+                      <div key={i}
+                        onClick={() => f.tipo?.startsWith('image') && setFotoAmpliada(f.data)}
+                        style={{ cursor: f.tipo?.startsWith('image') ? 'pointer' : 'default' }}>
+                        {f.tipo?.startsWith('image') ? (
+                          <img src={f.data} alt={f.nombre}
+                            style={{ width: 72, height: 72, objectFit: 'cover' }}
+                            className="rounded border" />
+                        ) : (
+                          <div className="bg-light border rounded d-flex flex-column align-items-center justify-content-center p-1"
+                            style={{ width: 72, height: 72 }}>
+                            <i className="bi bi-camera-video text-secondary fs-5"></i>
+                            <div className="text-muted text-center" style={{ fontSize: 9 }}>{f.nombre}</div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
           ))}
