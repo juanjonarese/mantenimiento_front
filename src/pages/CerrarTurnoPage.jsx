@@ -8,58 +8,72 @@ export default function CerrarTurnoPage() {
   const [searchParams] = useSearchParams();
   const esPendiente = searchParams.get("pendiente") === "1";
 
-  const [turno, setTurno] = useState(null);
-  const [materiales, setMateriales] = useState([]);
-  const [cantidades, setCantidades] = useState({});
+  const [turno, setTurno]           = useState(null);
+  const [catalogo, setCatalogo]     = useState([]);   // materiales disponibles
+  const [listaUsados, setListaUsados] = useState([]); // { id, nombre, cantidad, unidad }
+  const [selId, setSelId]           = useState("");   // id del select
+  const [cantInput, setCantInput]   = useState("");   // cantidad del input
+  const [errorAgregar, setErrorAgregar] = useState("");
+
   const [observaciones, setObservaciones] = useState("");
-  const [cargando, setCargando] = useState(true);
-  const [guardando, setGuardando] = useState(false);
-  const [error, setError] = useState("");
+  const [cargando, setCargando]     = useState(true);
+  const [guardando, setGuardando]   = useState(false);
+  const [error, setError]           = useState("");
 
   useEffect(() => {
-    const turnoId = localStorage.getItem("turnoId");
-    if (!turnoId) {
-      navigate("/login");
-      return;
-    }
+    if (!localStorage.getItem("turnoId")) { navigate("/login"); return; }
 
-    Promise.all([
-      obtenerTurnoActivo(),
-      obtenerMateriales(),
-    ])
+    Promise.all([obtenerTurnoActivo(), obtenerMateriales()])
       .then(([{ turno: t }, mats]) => {
-        if (!t) {
-          navigate("/login");
-          return;
-        }
+        if (!t) { navigate("/login"); return; }
         setTurno(t);
-        setMateriales(mats);
-        const inicial = {};
-        mats.forEach((m) => { inicial[m.id] = ""; });
-        setCantidades(inicial);
+        setCatalogo(mats);
+        if (mats.length > 0) setSelId(String(mats[0].id));
       })
-      .catch(() => {
-        setError("No se pudo cargar la información. Verificá tu conexión.");
-      })
+      .catch(() => setError("No se pudo cargar la información. Verificá tu conexión."))
       .finally(() => setCargando(false));
   }, []);
 
+  // ── Agregar material a la lista ─────────────────────────────────────────
+  function handleAgregar() {
+    setErrorAgregar("");
+    if (!selId) return setErrorAgregar("Seleccioná un material");
+    const cant = parseFloat(cantInput);
+    if (!cantInput || isNaN(cant) || cant <= 0) return setErrorAgregar("Ingresá una cantidad mayor a 0");
+
+    const mat = catalogo.find((m) => String(m.id) === selId);
+    if (!mat) return;
+
+    // Si ya está en la lista, actualiza la cantidad
+    setListaUsados((prev) => {
+      const existe = prev.find((u) => String(u.id) === selId);
+      if (existe) {
+        return prev.map((u) =>
+          String(u.id) === selId ? { ...u, cantidad: cant } : u
+        );
+      }
+      return [...prev, { id: mat.id, nombre: mat.nombre, cantidad: cant, unidad: mat.unidad }];
+    });
+    setCantInput("");
+  }
+
+  function handleEliminar(id) {
+    setListaUsados((prev) => prev.filter((u) => String(u.id) !== String(id)));
+  }
+
+  // ── Cerrar turno ────────────────────────────────────────────────────────
   async function handleCerrar(e) {
     e.preventDefault();
     if (!turno) return;
 
-    const materialesUsados = materiales
-      .filter((m) => cantidades[m.id] !== "" && parseFloat(cantidades[m.id]) > 0)
-      .map((m) => ({
-        nombre: m.nombre,
-        cantidad: parseFloat(cantidades[m.id]),
-        unidad: m.unidad,
-      }));
+    const materialesPayload = listaUsados.map(({ nombre, cantidad, unidad }) => ({
+      nombre, cantidad, unidad,
+    }));
 
     setGuardando(true);
     setError("");
     try {
-      await cerrarTurno(turno._id, { materiales: materialesUsados, observaciones });
+      await cerrarTurno(turno._id, { materiales: materialesPayload, observaciones });
       localStorage.removeItem("turnoId");
 
       if (esPendiente) {
@@ -77,14 +91,13 @@ export default function CerrarTurnoPage() {
     }
   }
 
-  function formatHora(fecha) {
-    if (!fecha) return "—";
-    return new Date(fecha).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+  function formatHora(f) {
+    if (!f) return "—";
+    return new Date(f).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
   }
-
-  function formatFecha(fecha) {
-    if (!fecha) return "";
-    return new Date(fecha).toLocaleDateString("es-AR", { day: "numeric", month: "long" });
+  function formatFecha(f) {
+    if (!f) return "";
+    return new Date(f).toLocaleDateString("es-AR", { day: "numeric", month: "long" });
   }
 
   if (cargando) {
@@ -94,6 +107,8 @@ export default function CerrarTurnoPage() {
       </div>
     );
   }
+
+  const matSeleccionado = catalogo.find((m) => String(m.id) === selId);
 
   return (
     <div className="container-fluid p-3 pb-5">
@@ -113,8 +128,7 @@ export default function CerrarTurnoPage() {
       )}
 
       <h5 className="fw-bold mb-1">
-        <i className="bi bi-door-closed me-2 text-danger"></i>
-        Cerrar turno
+        <i className="bi bi-door-closed me-2 text-danger"></i>Cerrar turno
       </h5>
       {turno && (
         <div className="text-muted small mb-4">
@@ -124,51 +138,91 @@ export default function CerrarTurnoPage() {
 
       <form onSubmit={handleCerrar}>
 
-        {/* Materiales usados */}
+        {/* ── Materiales ── */}
         <div className="card mb-3">
           <div className="card-header bg-light fw-semibold small">
             <i className="bi bi-box-seam me-1"></i> Materiales utilizados en el turno
           </div>
           <div className="card-body">
-            {materiales.length === 0 ? (
-              <div className="text-muted small text-center py-3">
-                <i className="bi bi-box-seam me-1"></i>
-                No hay materiales configurados.{" "}
-                <a href="/materiales" className="text-primary">Ir a Materiales</a>
-              </div>
+
+            {catalogo.length === 0 ? (
+              <p className="text-muted small text-center mb-0">
+                No hay materiales configurados.
+              </p>
             ) : (
-              materiales.map((mat) => (
-                <div key={mat.id} className="d-flex align-items-center gap-3 mb-3">
-                  <div className="flex-grow-1">
-                    <div className="fw-semibold small">{mat.nombre}</div>
-                    <div className="text-muted" style={{ fontSize: 12 }}>
-                      Stock disponible: {mat.stock} {mat.unidad}
-                    </div>
-                  </div>
-                  <div className="d-flex align-items-center gap-2">
-                    <input
-                      type="number"
-                      className="form-control text-center"
-                      style={{ width: 90 }}
-                      min="0"
-                      step="any"
-                      placeholder="0"
-                      value={cantidades[mat.id] ?? ""}
-                      onChange={(e) =>
-                        setCantidades((prev) => ({ ...prev, [mat.id]: e.target.value }))
-                      }
-                    />
-                    <span className="text-muted small text-nowrap" style={{ minWidth: 45 }}>
-                      {mat.unidad}
-                    </span>
-                  </div>
+              <>
+                {/* Fila agregar */}
+                <div className="d-flex gap-2 mb-1">
+                  <select
+                    className="form-select"
+                    value={selId}
+                    onChange={(e) => { setSelId(e.target.value); setErrorAgregar(""); }}
+                  >
+                    {catalogo.map((m) => (
+                      <option key={m.id} value={String(m.id)}>
+                        {m.nombre}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    className="form-control text-center"
+                    style={{ width: 90, flexShrink: 0 }}
+                    min="0"
+                    step="any"
+                    placeholder="Cant."
+                    value={cantInput}
+                    onChange={(e) => { setCantInput(e.target.value); setErrorAgregar(""); }}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAgregar(); } }}
+                  />
+                  <span className="text-muted small d-flex align-items-center text-nowrap" style={{ minWidth: 40 }}>
+                    {matSeleccionado?.unidad || ""}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-primary flex-shrink-0"
+                    onClick={handleAgregar}
+                  >
+                    <i className="bi bi-plus-lg"></i>
+                  </button>
                 </div>
-              ))
+
+                {errorAgregar && (
+                  <div className="text-danger small mb-2">{errorAgregar}</div>
+                )}
+
+                {/* Lista de materiales agregados */}
+                {listaUsados.length === 0 ? (
+                  <p className="text-muted small text-center py-2 mb-0">
+                    Todavía no agregaste materiales
+                  </p>
+                ) : (
+                  <div className="mt-3">
+                    {listaUsados.map((u) => (
+                      <div key={u.id} className="d-flex align-items-center justify-content-between py-2 border-bottom">
+                        <span className="fw-semibold small">{u.nombre}</span>
+                        <div className="d-flex align-items-center gap-2">
+                          <span className="badge bg-primary fs-6">
+                            {u.cantidad} {u.unidad}
+                          </span>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-danger py-0 px-2"
+                            onClick={() => handleEliminar(u.id)}
+                          >
+                            <i className="bi bi-x-lg"></i>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
 
-        {/* Observaciones */}
+        {/* ── Observaciones ── */}
         <div className="card mb-4">
           <div className="card-header bg-light fw-semibold small">
             <i className="bi bi-chat-left-text me-1"></i> Observaciones del turno
@@ -196,11 +250,10 @@ export default function CerrarTurnoPage() {
             className="btn btn-danger btn-lg w-100 py-3"
             disabled={guardando}
           >
-            {guardando ? (
-              <><span className="spinner-border spinner-border-sm me-2"></span>Cerrando turno...</>
-            ) : (
-              <><i className="bi bi-check-circle me-2 fs-5"></i>Confirmar cierre de turno</>
-            )}
+            {guardando
+              ? <><span className="spinner-border spinner-border-sm me-2"></span>Cerrando turno...</>
+              : <><i className="bi bi-check-circle me-2 fs-5"></i>Confirmar cierre de turno</>
+            }
           </button>
 
           {!esPendiente && (

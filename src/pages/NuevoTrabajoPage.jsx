@@ -257,7 +257,6 @@ export default function NuevoTrabajoPage() {
         observaciones: form.observaciones,
         linkDrive: form.linkDrive,
         linkMyMaps: form.linkMyMaps,
-        materiales: form.trabajos.flatMap((t) => t.materiales),
         fotos: [...fotosExistentes, ...fotos],
         sincronizado: false,
       };
@@ -426,13 +425,9 @@ export default function NuevoTrabajoPage() {
                     <div className="text-muted">
                       {t.largo}m × {t.ancho}m × {t.cantidad} unid.
                     </div>
-                    {t.materiales.length > 0 && (
-                      <div className="mt-1">
-                        {t.materiales.map((m, i) => (
-                          <span key={i} className="badge bg-secondary me-1 fw-normal">
-                            {m.nombre} {m.cantidad} {m.unidad}
-                          </span>
-                        ))}
+                    {(t.fotos || []).length > 0 && (
+                      <div className="mt-1 text-muted">
+                        <i className="bi bi-camera me-1"></i>{t.fotos.length} foto{t.fotos.length !== 1 ? 's' : ''}
                       </div>
                     )}
                   </div>
