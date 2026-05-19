@@ -111,14 +111,6 @@ export default function TurnoPage() {
           Nuevo trabajo
         </button>
 
-        <button
-          className="btn btn-outline-secondary btn-lg w-100 py-3"
-          onClick={() => navigate("/lista")}
-        >
-          <i className="bi bi-list-ul me-2 fs-5"></i>
-          Ver trabajos registrados
-        </button>
-
         <div className="mt-2">
           <button
             className="btn btn-outline-danger btn-lg w-100 py-3"

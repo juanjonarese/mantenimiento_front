@@ -88,10 +88,12 @@ function App() {
         } />
 
         {/* Admin + Supervisor */}
-        <Route path="/nuevo" element={<ProtectedRoute><Layout><NuevoTrabajoPage /></Layout></ProtectedRoute>} />
-        <Route path="/editar/:id" element={<ProtectedRoute><Layout><NuevoTrabajoPage /></Layout></ProtectedRoute>} />
-        <Route path="/lista" element={<ProtectedRoute><Layout fullWidth><ListaPage /></Layout></ProtectedRoute>} />
-        <Route path="/detalle/:id" element={<ProtectedRoute><Layout><DetallePage /></Layout></ProtectedRoute>} />
+        <Route path="/nuevo" element={<ProtectedRoute roles={['admin','supervisor']}><Layout><NuevoTrabajoPage /></Layout></ProtectedRoute>} />
+
+        {/* Admin only */}
+        <Route path="/editar/:id" element={<ProtectedRoute roles={['admin']}><Layout><NuevoTrabajoPage /></Layout></ProtectedRoute>} />
+        <Route path="/lista" element={<ProtectedRoute roles={['admin']}><Layout fullWidth><ListaPage /></Layout></ProtectedRoute>} />
+        <Route path="/detalle/:id" element={<ProtectedRoute roles={['admin']}><Layout><DetallePage /></Layout></ProtectedRoute>} />
 
         <Route path="*" element={<Navigate to="/lista" replace />} />
       </Routes>

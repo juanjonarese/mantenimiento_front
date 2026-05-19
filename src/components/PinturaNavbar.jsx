@@ -5,10 +5,10 @@ import { useTheme } from '../hooks/useTheme';
 const NAV_LINKS = [
   { to: '/',               icon: 'bar-chart-line',  label: 'Panel',          roles: ['admin']                        },
   { to: '/turno',          icon: 'clock-history',   label: 'Turno activo',   roles: ['supervisor']                   },
-  { to: '/lista',          icon: 'list-ul',          label: 'Lista',          roles: ['admin', 'supervisor', 'usuario'] },
+  { to: '/lista',          icon: 'list-ul',          label: 'Lista',          roles: ['admin']                          },
   { to: '/mapa',           icon: 'map',              label: 'Mapa',           roles: ['admin']                        },
   { to: '/certificaciones',icon: 'patch-check',      label: 'Certificaciones',roles: ['admin']                        },
-  { to: '/nuevo',          icon: 'plus-circle',      label: 'Nuevo trabajo',  roles: ['admin', 'supervisor', 'usuario'] },
+  { to: '/nuevo',          icon: 'plus-circle',      label: 'Nuevo trabajo',  roles: ['admin', 'supervisor']           },
   { to: '/usuarios',       icon: 'people',           label: 'Usuarios',       roles: ['admin']                        },
   { to: '/materiales',     icon: 'box-seam',         label: 'Materiales',     roles: ['admin']                        },
   { to: '/tipos-tarea',    icon: 'tags',             label: 'Tipos de tarea', roles: ['admin']                        },
