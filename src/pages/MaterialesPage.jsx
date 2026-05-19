@@ -5,6 +5,7 @@ import {
   actualizarMaterialCatalogo,
   eliminarMaterialCatalogo,
 } from '../services/api';
+import { obtenerMateriales as obtenerMaterialesLocales } from '../db/db';
 
 const UNIDADES = ['litros', 'kg', 'unidades', 'm²', 'bolsas', 'tambores'];
 const NOMBRES_SUGERIDOS = [
@@ -36,7 +37,31 @@ export default function MaterialesPage() {
       .finally(() => setCargando(false));
   };
 
-  useEffect(() => { cargar(); }, []);
+  // Migración única: si el backend no tiene materiales pero el IndexedDB sí, los importa
+  useEffect(() => {
+    async function migrarSiNecesario() {
+      try {
+        const [{ materiales: backendMats }, localMats] = await Promise.all([
+          obtenerTodosMaterialesCatalogo(),
+          obtenerMaterialesLocales(),
+        ]);
+        if (backendMats.length === 0 && localMats.length > 0) {
+          await Promise.all(
+            localMats.map((m) =>
+              crearMaterialCatalogo({
+                codigo: m.codigo || '',
+                nombre: m.nombre,
+                stock: m.stock,
+                unidad: m.unidad,
+              }).catch(() => {})
+            )
+          );
+        }
+      } catch { /* si falla, igual carga normalmente */ }
+      cargar();
+    }
+    migrarSiNecesario();
+  }, []);
 
   function abrirNuevo() {
     setEditId(null);

@@ -7,33 +7,49 @@ export default function CerrarTurnoPage() {
   const [searchParams] = useSearchParams();
   const esPendiente = searchParams.get("pendiente") === "1";
 
-  const [turno, setTurno]           = useState(null);
-  const [catalogo, setCatalogo]     = useState([]);   // materiales disponibles
-  const [listaUsados, setListaUsados] = useState([]); // { id, nombre, cantidad, unidad }
-  const [selId, setSelId]           = useState("");   // id del select
-  const [cantInput, setCantInput]   = useState("");   // cantidad del input
+  const [turno, setTurno]               = useState(null);
+  const [catalogo, setCatalogo]         = useState([]);
+  const [listaUsados, setListaUsados]   = useState([]);
+  const [selId, setSelId]               = useState("");
+  const [cantInput, setCantInput]       = useState("");
   const [errorAgregar, setErrorAgregar] = useState("");
-
   const [observaciones, setObservaciones] = useState("");
-  const [cargando, setCargando]     = useState(true);
-  const [guardando, setGuardando]   = useState(false);
-  const [error, setError]           = useState("");
+  const [cargando, setCargando]         = useState(true);
+  const [guardando, setGuardando]       = useState(false);
+  const [error, setError]               = useState("");
 
   useEffect(() => {
-    if (!localStorage.getItem("turnoId")) { navigate("/login"); return; }
+    const turnoId = localStorage.getItem("turnoId");
+    if (!turnoId) { navigate("/login"); return; }
 
-    Promise.all([obtenerTurnoActivo(), obtenerMaterialesCatalogo()])
-      .then(([{ turno: t }, { materiales: mats }]) => {
-        if (!t) { navigate("/login"); return; }
-        setTurno(t);
-        setCatalogo(mats || []);
-        if (mats?.length > 0) setSelId(String(mats[0]._id));
+    // Cargamos turno y materiales por separado para que un fallo no bloquee al otro
+    const cargarTurno = obtenerTurnoActivo()
+      .then(({ turno: t }) => {
+        if (t) {
+          setTurno(t);
+        } else {
+          // Sin turno activo en backend pero tenemos turnoId local → mostramos igual
+          setTurno({ _id: turnoId, fechaInicio: null });
+        }
       })
-      .catch(() => setError("No se pudo cargar la información. Verificá tu conexión."))
-      .finally(() => setCargando(false));
+      .catch(() => {
+        setTurno({ _id: turnoId, fechaInicio: null });
+      });
+
+    const cargarMateriales = obtenerMaterialesCatalogo()
+      .then((res) => {
+        const mats = res?.materiales || [];
+        setCatalogo(mats);
+        if (mats.length > 0) setSelId(String(mats[0]._id));
+      })
+      .catch(() => {
+        setError("No se pudieron cargar los materiales. Verificá la conexión.");
+      });
+
+    Promise.all([cargarTurno, cargarMateriales]).finally(() => setCargando(false));
   }, []);
 
-  // ── Agregar material a la lista ─────────────────────────────────────────
+  // ── Agregar material ──────────────────────────────────────────────────────
   function handleAgregar() {
     setErrorAgregar("");
     if (!selId) return setErrorAgregar("Seleccioná un material");
@@ -43,24 +59,21 @@ export default function CerrarTurnoPage() {
     const mat = catalogo.find((m) => String(m._id) === selId);
     if (!mat) return;
 
-    // Si ya está en la lista, actualiza la cantidad
     setListaUsados((prev) => {
       const existe = prev.find((u) => String(u._id) === selId);
       if (existe) {
-        return prev.map((u) =>
-          String(u._id) === selId ? { ...u, cantidad: cant } : u
-        );
+        return prev.map((u) => String(u._id) === selId ? { ...u, cantidad: cant } : u);
       }
       return [...prev, { _id: mat._id, nombre: mat.nombre, cantidad: cant, unidad: mat.unidad }];
     });
     setCantInput("");
   }
 
-  function handleEliminar(id) {
-    setListaUsados((prev) => prev.filter((u) => String(u._id) !== String(id)));
+  function handleEliminar(_id) {
+    setListaUsados((prev) => prev.filter((u) => String(u._id) !== String(_id)));
   }
 
-  // ── Cerrar turno ────────────────────────────────────────────────────────
+  // ── Cerrar turno ──────────────────────────────────────────────────────────
   async function handleCerrar(e) {
     e.preventDefault();
     if (!turno) return;
@@ -112,7 +125,6 @@ export default function CerrarTurnoPage() {
   return (
     <div className="container-fluid p-3 pb-5">
 
-      {/* Aviso turno pendiente */}
       {esPendiente && (
         <div className="alert alert-warning d-flex align-items-start gap-2 mb-4">
           <i className="bi bi-exclamation-triangle-fill fs-5 flex-shrink-0 mt-1"></i>
@@ -129,7 +141,7 @@ export default function CerrarTurnoPage() {
       <h5 className="fw-bold mb-1">
         <i className="bi bi-door-closed me-2 text-danger"></i>Cerrar turno
       </h5>
-      {turno && (
+      {turno?.fechaInicio && (
         <div className="text-muted small mb-4">
           Turno iniciado el {formatFecha(turno.fechaInicio)} a las {formatHora(turno.fechaInicio)}
         </div>
@@ -137,7 +149,7 @@ export default function CerrarTurnoPage() {
 
       <form onSubmit={handleCerrar}>
 
-        {/* ── Materiales ── */}
+        {/* ── Materiales ───────────────────────────────────────────── */}
         <div className="card mb-3">
           <div className="card-header bg-light fw-semibold small">
             <i className="bi bi-box-seam me-1"></i> Materiales utilizados en el turno
@@ -146,12 +158,12 @@ export default function CerrarTurnoPage() {
 
             {catalogo.length === 0 ? (
               <p className="text-muted small text-center mb-0">
-                No hay materiales configurados.
+                No hay materiales configurados. El admin debe cargarlos en la sección Materiales.
               </p>
             ) : (
               <>
-                {/* Fila agregar */}
-                <div className="d-flex gap-2 mb-1">
+                {/* Fila seleccionar + cantidad */}
+                <div className="d-flex gap-2 mb-1 align-items-center">
                   <select
                     className="form-select"
                     value={selId}
@@ -163,6 +175,7 @@ export default function CerrarTurnoPage() {
                       </option>
                     ))}
                   </select>
+
                   <input
                     type="number"
                     className="form-control text-center"
@@ -174,36 +187,30 @@ export default function CerrarTurnoPage() {
                     onChange={(e) => { setCantInput(e.target.value); setErrorAgregar(""); }}
                     onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAgregar(); } }}
                   />
-                  <span className="text-muted small d-flex align-items-center text-nowrap" style={{ minWidth: 40 }}>
+
+                  <span className="text-muted small text-nowrap" style={{ minWidth: 45 }}>
                     {matSeleccionado?.unidad || ""}
                   </span>
-                  <button
-                    type="button"
-                    className="btn btn-primary flex-shrink-0"
-                    onClick={handleAgregar}
-                  >
+
+                  <button type="button" className="btn btn-primary px-3 flex-shrink-0" onClick={handleAgregar}>
                     <i className="bi bi-plus-lg"></i>
                   </button>
                 </div>
 
-                {errorAgregar && (
-                  <div className="text-danger small mb-2">{errorAgregar}</div>
-                )}
+                {errorAgregar && <div className="text-danger small mb-2">{errorAgregar}</div>}
 
                 {/* Lista de materiales agregados */}
                 {listaUsados.length === 0 ? (
-                  <p className="text-muted small text-center py-2 mb-0">
+                  <p className="text-muted small text-center py-2 mb-0 mt-2">
                     Todavía no agregaste materiales
                   </p>
                 ) : (
-                  <div className="mt-3">
+                  <div className="mt-3 border-top pt-2">
                     {listaUsados.map((u) => (
-                      <div key={u._id} className="d-flex align-items-center justify-content-between py-2 border-bottom">
+                      <div key={String(u._id)} className="d-flex align-items-center justify-content-between py-2 border-bottom">
                         <span className="fw-semibold small">{u.nombre}</span>
                         <div className="d-flex align-items-center gap-2">
-                          <span className="badge bg-primary fs-6">
-                            {u.cantidad} {u.unidad}
-                          </span>
+                          <span className="badge bg-primary fs-6">{u.cantidad} {u.unidad}</span>
                           <button
                             type="button"
                             className="btn btn-sm btn-outline-danger py-0 px-2"
@@ -221,7 +228,7 @@ export default function CerrarTurnoPage() {
           </div>
         </div>
 
-        {/* ── Observaciones ── */}
+        {/* ── Observaciones ─────────────────────────────────────────── */}
         <div className="card mb-4">
           <div className="card-header bg-light fw-semibold small">
             <i className="bi bi-chat-left-text me-1"></i> Observaciones del turno
@@ -244,24 +251,15 @@ export default function CerrarTurnoPage() {
         )}
 
         <div className="d-flex flex-column gap-2">
-          <button
-            type="submit"
-            className="btn btn-danger btn-lg w-100 py-3"
-            disabled={guardando}
-          >
+          <button type="submit" className="btn btn-danger btn-lg w-100 py-3" disabled={guardando}>
             {guardando
               ? <><span className="spinner-border spinner-border-sm me-2"></span>Cerrando turno...</>
               : <><i className="bi bi-check-circle me-2 fs-5"></i>Confirmar cierre de turno</>
             }
           </button>
-
           {!esPendiente && (
-            <button
-              type="button"
-              className="btn btn-outline-secondary btn-lg w-100"
-              onClick={() => navigate(-1)}
-              disabled={guardando}
-            >
+            <button type="button" className="btn btn-outline-secondary btn-lg w-100"
+              onClick={() => navigate(-1)} disabled={guardando}>
               Cancelar
             </button>
           )}
