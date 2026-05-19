@@ -23,11 +23,11 @@ export default function CerrarTurnoPage() {
     if (!localStorage.getItem("turnoId")) { navigate("/login"); return; }
 
     Promise.all([obtenerTurnoActivo(), obtenerMaterialesCatalogo()])
-      .then(([{ turno: t }, mats]) => {
+      .then(([{ turno: t }, { materiales: mats }]) => {
         if (!t) { navigate("/login"); return; }
         setTurno(t);
-        setCatalogo(mats);
-        if (mats.length > 0) setSelId(String(mats[0]._id));
+        setCatalogo(mats || []);
+        if (mats?.length > 0) setSelId(String(mats[0]._id));
       })
       .catch(() => setError("No se pudo cargar la información. Verificá tu conexión."))
       .finally(() => setCargando(false));
