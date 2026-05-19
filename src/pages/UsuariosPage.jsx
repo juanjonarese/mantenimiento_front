@@ -90,7 +90,7 @@ const UsuariosPage = () => {
         <div class="mb-3 text-start">
           <label class="form-label fw-semibold">Rol *</label>
           <select id="swal-rol" class="form-select">
-            <option value="operario" ${usuario.rol === 'operario' ? 'selected' : ''}>Operario</option>
+            <option value="supervisor" ${usuario.rol === 'supervisor' || usuario.rol === 'usuario' ? 'selected' : ''}>Supervisor</option>
             <option value="admin" ${usuario.rol === 'admin' ? 'selected' : ''}>Administrador</option>
           </select>
         </div>
@@ -163,7 +163,7 @@ const UsuariosPage = () => {
         <div class="mb-3 text-start">
           <label class="form-label fw-semibold">Rol *</label>
           <select id="swal-rol" class="form-select">
-            <option value="operario">Operario</option>
+            <option value="supervisor">Supervisor</option>
             <option value="admin">Administrador</option>
           </select>
         </div>
@@ -212,9 +212,10 @@ const UsuariosPage = () => {
     }
   };
 
-  const badgeRol = (rol) => rol === "admin"
-    ? <span className="badge bg-primary">Admin</span>
-    : <span className="badge bg-secondary">Operario</span>;
+  const badgeRol = (rol) => {
+    if (rol === 'admin') return <span className="badge bg-primary">Admin</span>;
+    return <span className="badge bg-secondary">Supervisor</span>;
+  };
 
   return (
     <div className="lista-page">

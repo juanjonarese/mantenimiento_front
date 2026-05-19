@@ -3,13 +3,13 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
 
 const NAV_LINKS = [
-  { to: '/',               icon: 'bar-chart-line',  label: 'Panel',          adminOnly: false },
-  { to: '/lista',          icon: 'list-ul',          label: 'Lista',          adminOnly: false },
-  { to: '/mapa',           icon: 'map',              label: 'Mapa',           adminOnly: false },
-  { to: '/certificaciones',icon: 'patch-check',      label: 'Certificaciones',adminOnly: true  },
-  { to: '/nuevo',          icon: 'plus-circle',      label: 'Nuevo trabajo',  adminOnly: false },
-  { to: '/usuarios',       icon: 'people',           label: 'Usuarios',       adminOnly: true  },
-  { to: '/materiales',     icon: 'box-seam',         label: 'Materiales',     adminOnly: true  },
+  { to: '/',               icon: 'bar-chart-line',  label: 'Panel',          roles: ['admin']                        },
+  { to: '/lista',          icon: 'list-ul',          label: 'Lista',          roles: ['admin', 'supervisor', 'usuario'] },
+  { to: '/mapa',           icon: 'map',              label: 'Mapa',           roles: ['admin']                        },
+  { to: '/certificaciones',icon: 'patch-check',      label: 'Certificaciones',roles: ['admin']                        },
+  { to: '/nuevo',          icon: 'plus-circle',      label: 'Nuevo trabajo',  roles: ['admin', 'supervisor', 'usuario'] },
+  { to: '/usuarios',       icon: 'people',           label: 'Usuarios',       roles: ['admin']                        },
+  { to: '/materiales',     icon: 'box-seam',         label: 'Materiales',     roles: ['admin']                        },
 ];
 
 export default function PinturaNavbar() {
@@ -18,8 +18,9 @@ export default function PinturaNavbar() {
   const [abierto, setAbierto] = useState(false);
 
   const { tema, toggleTema } = useTheme();
-  const esAdmin = localStorage.getItem('rol') === 'admin' || import.meta.env.DEV;
-  const links = NAV_LINKS.filter((l) => !l.adminOnly || esAdmin);
+  const rol = localStorage.getItem('rol');
+  const esDev = import.meta.env.DEV;
+  const links = NAV_LINKS.filter((l) => esDev || l.roles.includes(rol));
 
   const handleLogout = () => {
     localStorage.clear();

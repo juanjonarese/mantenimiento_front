@@ -39,36 +39,41 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginScreen />} />
+
+        {/* Admin only */}
         <Route path="/" element={
-          <ProtectedRoute><Layout fullWidth>
+          <ProtectedRoute roles={['admin']}><Layout fullWidth>
             <Suspense fallback={<Spinner />}><PanelPage /></Suspense>
           </Layout></ProtectedRoute>
         } />
-        <Route path="/nuevo" element={<ProtectedRoute><Layout><NuevoTrabajoPage /></Layout></ProtectedRoute>} />
-        <Route path="/editar/:id" element={<ProtectedRoute><Layout><NuevoTrabajoPage /></Layout></ProtectedRoute>} />
-        <Route path="/lista" element={<ProtectedRoute><Layout fullWidth><ListaPage /></Layout></ProtectedRoute>} />
-        <Route path="/detalle/:id" element={<ProtectedRoute><Layout><DetallePage /></Layout></ProtectedRoute>} />
         <Route path="/mapa" element={
-          <ProtectedRoute><Layout fullWidth>
+          <ProtectedRoute roles={['admin']}><Layout fullWidth>
             <Suspense fallback={<Spinner />}><MapaPage /></Suspense>
           </Layout></ProtectedRoute>
         } />
         <Route path="/certificaciones" element={
-          <ProtectedRoute><Layout>
+          <ProtectedRoute roles={['admin']}><Layout>
             <Suspense fallback={<Spinner />}><CertificacionesPage /></Suspense>
           </Layout></ProtectedRoute>
         } />
         <Route path="/usuarios" element={
-          <ProtectedRoute><Layout fullWidth>
+          <ProtectedRoute roles={['admin']}><Layout fullWidth>
             <Suspense fallback={<Spinner />}><UsuariosPage /></Suspense>
           </Layout></ProtectedRoute>
         } />
         <Route path="/materiales" element={
-          <ProtectedRoute><Layout fullWidth>
+          <ProtectedRoute roles={['admin']}><Layout fullWidth>
             <Suspense fallback={<Spinner />}><MaterialesPage /></Suspense>
           </Layout></ProtectedRoute>
         } />
-        <Route path="*" element={<Navigate to="/" replace />} />
+
+        {/* Admin + Supervisor */}
+        <Route path="/nuevo" element={<ProtectedRoute><Layout><NuevoTrabajoPage /></Layout></ProtectedRoute>} />
+        <Route path="/editar/:id" element={<ProtectedRoute><Layout><NuevoTrabajoPage /></Layout></ProtectedRoute>} />
+        <Route path="/lista" element={<ProtectedRoute><Layout fullWidth><ListaPage /></Layout></ProtectedRoute>} />
+        <Route path="/detalle/:id" element={<ProtectedRoute><Layout><DetallePage /></Layout></ProtectedRoute>} />
+
+        <Route path="*" element={<Navigate to="/lista" replace />} />
       </Routes>
     </BrowserRouter>
   );
