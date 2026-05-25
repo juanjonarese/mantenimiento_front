@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { cerrarTurno, obtenerTurnoActivo, abrirTurno, obtenerMaterialesCatalogo } from "../services/api";
+import { cerrarTurno, obtenerTurnoActivo, abrirTurno, obtenerMaterialesCatalogo, actualizarMaterialCatalogo } from "../services/api";
 import Swal from "sweetalert2";
 
 export default function CerrarTurnoPage() {
@@ -134,6 +134,17 @@ export default function CerrarTurnoPage() {
     setError("");
     try {
       await cerrarTurno(turno._id, { materiales: materialesPayload, observaciones });
+
+      // Descontar stock de cada material usado
+      await Promise.allSettled(
+        listaUsados.map((u) => {
+          const mat = catalogo.find((m) => String(m._id) === String(u._id));
+          if (!mat) return Promise.resolve();
+          const nuevoStock = Math.max(0, (mat.stock || 0) - u.cantidad);
+          return actualizarMaterialCatalogo(mat._id, { ...mat, stock: nuevoStock });
+        })
+      );
+
       localStorage.removeItem("turnoId");
 
       if (esPendiente) {

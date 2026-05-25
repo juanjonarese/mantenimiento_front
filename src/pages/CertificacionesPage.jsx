@@ -249,6 +249,7 @@ export default function CertificacionesPage() {
   const [filtro, setFiltro] = useState('pendientes');
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
+  const [busquedaNro, setBusquedaNro] = useState('');
   const [seleccionados, setSeleccionados] = useState(new Set());
   const [expandido, setExpandido] = useState(null);
   const [modal, setModal] = useState(null); // { tipo, trabajo | bulk }
@@ -293,6 +294,10 @@ export default function CertificacionesPage() {
       const fechaStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       if (fechaDesde && fechaStr < fechaDesde) return false;
       if (fechaHasta && fechaStr > fechaHasta) return false;
+    }
+    if (busquedaNro.trim()) {
+      const nro = (t.nroCertificado || '').toLowerCase();
+      if (!nro.includes(busquedaNro.trim().toLowerCase())) return false;
     }
     return true;
   });
@@ -429,6 +434,23 @@ export default function CertificacionesPage() {
           );
         })}
       </div>
+      {/* ── BÚSQUEDA POR N° CERTIFICADO ── */}
+      <div className="px-3 px-lg-4 py-2 bg-white border-bottom d-flex align-items-center gap-2">
+        <i className="bi bi-search text-muted small flex-shrink-0"></i>
+        <input
+          type="text"
+          className="form-control form-control-sm"
+          placeholder="Buscar por N° certificado..."
+          value={busquedaNro}
+          onChange={(e) => { setBusquedaNro(e.target.value); setExpandido(null); }}
+        />
+        {busquedaNro && (
+          <button className="btn btn-sm btn-outline-secondary py-0 flex-shrink-0" onClick={() => setBusquedaNro('')}>
+            <i className="bi bi-x"></i>
+          </button>
+        )}
+      </div>
+
       <div className="px-3 px-lg-4 py-2 bg-white border-bottom d-flex align-items-center gap-2 flex-wrap">
         <i className="bi bi-calendar-range text-muted small"></i>
         <div className="d-flex align-items-center gap-1">
@@ -576,6 +598,11 @@ export default function CertificacionesPage() {
                             {cfg.label}
                           </span>
                           <span className="badge bg-primary bg-opacity-75">{sup} m²</span>
+                          {t.nroCertificado && (
+                            <span className="badge bg-dark bg-opacity-75">
+                              <i className="bi bi-hash me-1"></i>{t.nroCertificado}
+                            </span>
+                          )}
                         </div>
                       </div>
                       {/* Chevron expand */}

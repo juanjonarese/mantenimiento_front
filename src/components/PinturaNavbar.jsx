@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
+import Swal from 'sweetalert2';
 
 const NAV_LINKS = [
   { to: '/',               icon: 'bar-chart-line',  label: 'Panel',          roles: ['admin']                        },
@@ -24,7 +25,19 @@ export default function PinturaNavbar() {
   const rol = localStorage.getItem('rol');
   const links = NAV_LINKS.filter((l) => l.roles.includes(rol));
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const turnoId = localStorage.getItem('turnoId');
+    if (rol === 'supervisor' && turnoId) {
+      await Swal.fire({
+        title: 'Turno activo',
+        text: 'Tenés un turno abierto. Cerrá el turno antes de cerrar sesión.',
+        icon: 'warning',
+        confirmButtonColor: '#dc3545',
+        confirmButtonText: 'Ir a cerrar turno',
+      });
+      navigate('/cerrar-turno');
+      return;
+    }
     localStorage.clear();
     navigate('/login');
   };
