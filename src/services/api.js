@@ -97,16 +97,20 @@ export const sincronizarTrabajos = async (trabajos) => {
 };
 
 export const obtenerTrabajosBackend = async (filtros = {}) => {
-  if (IS_DEV) {
-    const trabajos = await obtenerTrabajosLocal();
-    return { trabajos };
-  }
   const token = localStorage.getItem("token");
   const params = new URLSearchParams(filtros).toString();
-  const response = await fetch(`${API_URL}/trabajos${params ? `?${params}` : ""}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return handleResponse(response);
+  try {
+    const response = await fetch(`${API_URL}/trabajos${params ? `?${params}` : ""}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return handleResponse(response);
+  } catch {
+    if (IS_DEV) {
+      const trabajos = await obtenerTrabajosLocal();
+      return { trabajos };
+    }
+    throw new Error("No se pudo conectar con el servidor");
+  }
 };
 
 export const actualizarTrabajoBackend = async (id, datos) => {
@@ -128,12 +132,15 @@ export const eliminarTrabajoBackend = async (id) => {
 };
 
 export const obtenerEstadisticas = async () => {
-  if (IS_DEV) return { estadisticas: null };
   const token = localStorage.getItem("token");
-  const response = await fetch(`${API_URL}/trabajos/estadisticas`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return handleResponse(response);
+  try {
+    const response = await fetch(`${API_URL}/trabajos/estadisticas`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return handleResponse(response);
+  } catch {
+    return { estadisticas: null };
+  }
 };
 
 // ============= TURNOS =============

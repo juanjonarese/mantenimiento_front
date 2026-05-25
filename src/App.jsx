@@ -37,6 +37,11 @@ function Layout({ children, fullWidth = false }) {
   );
 }
 
+function RoleRedirect() {
+  const rol = localStorage.getItem('rol');
+  return <Navigate to={rol === 'supervisor' ? '/turno' : '/lista'} replace />;
+}
+
 function App() {
   return (
     <BrowserRouter>
@@ -91,11 +96,11 @@ function App() {
         <Route path="/nuevo" element={<ProtectedRoute roles={['admin','supervisor']}><Layout><NuevoTrabajoPage /></Layout></ProtectedRoute>} />
 
         {/* Admin only */}
-        <Route path="/editar/:id" element={<ProtectedRoute roles={['admin']}><Layout><NuevoTrabajoPage /></Layout></ProtectedRoute>} />
+        <Route path="/editar/:id" element={<ProtectedRoute roles={['admin','supervisor']}><Layout><NuevoTrabajoPage /></Layout></ProtectedRoute>} />
         <Route path="/lista" element={<ProtectedRoute roles={['admin']}><Layout fullWidth><ListaPage /></Layout></ProtectedRoute>} />
         <Route path="/detalle/:id" element={<ProtectedRoute roles={['admin']}><Layout><DetallePage /></Layout></ProtectedRoute>} />
 
-        <Route path="*" element={<Navigate to="/lista" replace />} />
+        <Route path="*" element={<RoleRedirect />} />
       </Routes>
     </BrowserRouter>
   );

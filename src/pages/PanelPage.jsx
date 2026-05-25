@@ -52,19 +52,27 @@ export default function PanelPage() {
 
   const [filtros, setFiltros] = useState({
     desde: '', hasta: '', usuario: '', tipoTrabajo: '',
-    estadoOperativo: '', estadoAdmin: '',
+    estadoOperativo: '', estadoAdmin: '', material: '',
   });
 
   const cargar = useCallback(async () => {
     setCargando(true);
     setError('');
     try {
-      const params = Object.fromEntries(Object.entries(filtros).filter(([, v]) => v !== ''));
+      const { material, ...backendFiltros } = filtros;
+      const params = Object.fromEntries(Object.entries(backendFiltros).filter(([, v]) => v !== ''));
       const [{ trabajos: t }, { estadisticas: e }] = await Promise.all([
         obtenerTrabajosBackend(params),
         obtenerEstadisticas(),
       ]);
-      setTrabajos(t || []);
+      let resultado = t || [];
+      if (material) {
+        resultado = resultado.filter((tj) =>
+          [...(tj.materiales || []), ...(tj.items || []).flatMap((i) => i.materiales || [])]
+            .some((m) => m.nombre === material)
+        );
+      }
+      setTrabajos(resultado);
       setEstadisticas(e || null);
       setPagina(1);
     } catch {
@@ -111,6 +119,21 @@ export default function PanelPage() {
       .slice(0, 8);
   })();
 
+  const consumoMateriales = (() => {
+    const mapa = {};
+    trabajos.forEach((t) => {
+      [...(t.materiales || []), ...(t.items || []).flatMap((i) => i.materiales || [])].forEach((m) => {
+        if (!m.nombre) return;
+        const key = `${m.nombre}||${m.unidad || ''}`;
+        if (!mapa[key]) mapa[key] = { nombre: m.nombre, unidad: m.unidad || '', cantidad: 0 };
+        mapa[key].cantidad += m.cantidad || 0;
+      });
+    });
+    return Object.values(mapa)
+      .map((m) => ({ ...m, cantidad: parseFloat(m.cantidad.toFixed(2)) }))
+      .sort((a, b) => b.cantidad - a.cantidad);
+  })();
+
   const porDiaSuperficie = (() => {
     const mapa = {};
     trabajos.forEach((t) => {
@@ -126,6 +149,14 @@ export default function PanelPage() {
 
   // ── Usuarios únicos para filtro ──
   const usuarios = [...new Set(trabajos.map((t) => t.usuario))].sort();
+
+  // ── Materiales únicos para filtro ──
+  const materialesUnicos = [...new Set(
+    trabajos.flatMap((t) => [
+      ...(t.materiales || []).map((m) => m.nombre),
+      ...(t.items || []).flatMap((i) => (i.materiales || []).map((m) => m.nombre)),
+    ]).filter(Boolean)
+  )].sort();
 
   // ── Export Excel ──
   function exportarExcel() {
@@ -156,7 +187,7 @@ export default function PanelPage() {
   }
 
   function limpiarFiltros() {
-    setFiltros({ desde: '', hasta: '', usuario: '', tipoTrabajo: '', estadoOperativo: '', estadoAdmin: '' });
+    setFiltros({ desde: '', hasta: '', usuario: '', tipoTrabajo: '', estadoOperativo: '', estadoAdmin: '', material: '' });
   }
 
   const hayFiltros = Object.values(filtros).some((v) => v !== '');
@@ -254,6 +285,14 @@ export default function PanelPage() {
                   <option>Sin certificar</option>
                   <option>Certificado</option>
                   <option>Rechazado</option>
+                </select>
+              </div>
+              <div className="col-6 col-md-3 col-lg-2">
+                <label className="form-label small fw-semibold mb-1">Material</label>
+                <select className="form-select form-select-sm" name="material"
+                  value={filtros.material} onChange={handleFiltro}>
+                  <option value="">Todos</option>
+                  {materialesUnicos.map((m) => <option key={m}>{m}</option>)}
                 </select>
               </div>
             </div>
@@ -394,6 +433,75 @@ export default function PanelPage() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* ── MATERIALES ── */}
+        <div className="card mb-4">
+          <div className="card-header fw-semibold small">
+            <i className="bi bi-box-seam me-1"></i>Consumo de materiales
+            {consumoMateriales.length > 0 && (
+              <span className="text-muted fw-normal ms-2">({consumoMateriales.length} materiales)</span>
+            )}
+          </div>
+          {consumoMateriales.length === 0 ? (
+            <div className="card-body text-center text-muted py-4">
+              <i className="bi bi-box display-4 d-block mb-2"></i>
+              Sin datos de materiales en los trabajos seleccionados
+            </div>
+          ) : (
+            <div className="card-body">
+              <div className="row g-3">
+                {/* Gráfico barras horizontales — top 10 */}
+                <div className="col-12 col-lg-7">
+                  <p className="small fw-semibold text-muted mb-2">Top materiales por cantidad</p>
+                  <ResponsiveContainer width="100%" height={Math.max(200, Math.min(consumoMateriales.length, 10) * 36)}>
+                    <BarChart
+                      data={consumoMateriales.slice(0, 10)}
+                      layout="vertical"
+                      margin={{ top: 4, right: 60, left: 8, bottom: 0 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
+                      <XAxis type="number" tick={{ fontSize: 11 }} />
+                      <YAxis type="category" dataKey="nombre" tick={{ fontSize: 11 }} width={120} />
+                      <Tooltip
+                        formatter={(v, _n, props) => [`${v} ${props.payload.unidad}`, 'Cantidad']}
+                      />
+                      <Bar dataKey="cantidad" fill="#6f42c1" radius={[0, 4, 4, 0]}>
+                        {consumoMateriales.slice(0, 10).map((m, i) => (
+                          <Cell key={i} fill={COLORES_PIE[i % COLORES_PIE.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Tabla resumen */}
+                <div className="col-12 col-lg-5">
+                  <p className="small fw-semibold text-muted mb-2">Detalle completo</p>
+                  <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+                    <table className="table table-sm table-hover mb-0">
+                      <thead className="table-light sticky-top">
+                        <tr>
+                          <th className="small">Material</th>
+                          <th className="small text-end">Cantidad</th>
+                          <th className="small">Unidad</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {consumoMateriales.map((m, i) => (
+                          <tr key={i}>
+                            <td className="small">{m.nombre}</td>
+                            <td className="small text-end fw-bold text-primary">{m.cantidad.toLocaleString('es-AR')}</td>
+                            <td className="small text-muted">{m.unidad}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── MAPA ── */}

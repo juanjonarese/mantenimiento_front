@@ -14,6 +14,7 @@ const LoginScreen = () => {
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [verPass, setVerPass] = useState(false);
 
   // Limpiar localStorage al montar el componente para evitar problemas con credenciales viejas
   useEffect(() => {
@@ -138,17 +139,27 @@ const LoginScreen = () => {
                     >
                       CONTRASEÑA
                     </label>
-                    <input
-                      type="password"
-                      className="form-control"
-                      id="password"
-                      name="password"
-                      placeholder="Contraseña"
-                      value={formData.password}
-                      onChange={handleChange}
-                      disabled={loading}
-                      required
-                    />
+                    <div className="input-group">
+                      <input
+                        type={verPass ? 'text' : 'password'}
+                        className="form-control"
+                        id="password"
+                        name="password"
+                        placeholder="Contraseña"
+                        value={formData.password}
+                        onChange={handleChange}
+                        disabled={loading}
+                        required
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-outline-secondary"
+                        onClick={() => setVerPass((v) => !v)}
+                        tabIndex={-1}
+                      >
+                        <i className={`bi bi-${verPass ? 'eye-slash' : 'eye'}`}></i>
+                      </button>
+                    </div>
                   </div>
 
                   <button

@@ -22,8 +22,7 @@ export default function PinturaNavbar() {
 
   const { tema, toggleTema } = useTheme();
   const rol = localStorage.getItem('rol');
-  const esDev = import.meta.env.DEV;
-  const links = NAV_LINKS.filter((l) => esDev || l.roles.includes(rol));
+  const links = NAV_LINKS.filter((l) => l.roles.includes(rol));
 
   const handleLogout = () => {
     localStorage.clear();

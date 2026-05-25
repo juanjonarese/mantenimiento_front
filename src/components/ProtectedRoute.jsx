@@ -6,9 +6,9 @@ const ProtectedRoute = ({ children, roles }) => {
 
   if (roles) {
     const rol = localStorage.getItem("rol");
-    const esDev = import.meta.env.DEV;
-    if (!esDev && !roles.includes(rol)) {
-      return <Navigate to="/lista" replace />;
+    if (!roles.includes(rol)) {
+      const home = rol === 'supervisor' ? '/turno' : '/lista';
+      return <Navigate to={home} replace />;
     }
   }
 

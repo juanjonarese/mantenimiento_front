@@ -50,6 +50,7 @@ export default function NuevoTrabajoPage() {
   const [comprimiendo, setComprimiendo] = useState(false);
   const [mapaListo, setMapaListo] = useState(false);
   const [gpsFallo, setGpsFallo] = useState(false);
+  const [guardadoOk, setGuardadoOk] = useState(false);
 
   // Modal
   const [busqueda, setBusqueda] = useState('');
@@ -258,10 +259,16 @@ export default function NuevoTrabajoPage() {
         linkDrive: form.linkDrive,
         linkMyMaps: form.linkMyMaps,
         fotos: [...fotosExistentes, ...fotos],
+        turnoId: localStorage.getItem('turnoId') || null,
         sincronizado: false,
       };
       await guardarTrabajo(trabajo);
-      navigate('/lista');
+      const rol = localStorage.getItem('rol');
+      if (rol === 'supervisor') {
+        setGuardadoOk(true);
+      } else {
+        navigate('/lista');
+      }
     } catch {
       setErrorForm('Error al guardar. Intentá de nuevo.');
     } finally {
@@ -274,6 +281,63 @@ export default function NuevoTrabajoPage() {
     (parseFloat(modalForm.ancho) || 0) *
     (parseFloat(modalForm.cantidad) || 0)
   ).toFixed(2);
+
+  function hacerOtroTrabajo() {
+    setGuardadoOk(false);
+    setForm(FORM_VACIO);
+    setFotos([]);
+    setFotosExistentes([]);
+    setErrorForm('');
+    setMapaListo(false);
+    mapaKeyRef.current = 'default';
+    obtenerUbicacion().then((pos) => {
+      if (pos) {
+        const lat = pos.lat.toFixed(6);
+        const lng = pos.lng.toFixed(6);
+        mapaKeyRef.current = `${lat},${lng}`;
+        setForm((prev) => ({ ...prev, lat, lng }));
+      } else {
+        setGpsFallo(true);
+      }
+      setMapaListo(true);
+    });
+  }
+
+  if (guardadoOk) {
+    return (
+      <div className="container-fluid p-3 pb-5 d-flex flex-column align-items-center justify-content-center" style={{ minHeight: '70vh' }}>
+        <div className="text-center mb-4">
+          <i className="bi bi-check-circle-fill text-success" style={{ fontSize: 56 }}></i>
+          <h5 className="fw-bold mt-3 mb-1">¡Trabajo guardado!</h5>
+          <p className="text-muted small">¿Qué querés hacer ahora?</p>
+        </div>
+        <div className="row g-3 w-100" style={{ maxWidth: 480 }}>
+          <div className="col-12 col-sm-6">
+            <button
+              className="card border-2 border-primary text-center w-100 h-100 p-4 btn btn-outline-primary"
+              style={{ borderRadius: 16 }}
+              onClick={hacerOtroTrabajo}
+            >
+              <i className="bi bi-plus-circle-fill text-primary mb-3" style={{ fontSize: 40 }}></i>
+              <div className="fw-bold fs-6">Hacer otro trabajo</div>
+              <div className="text-muted small mt-1">Cargá un nuevo trabajo en el turno</div>
+            </button>
+          </div>
+          <div className="col-12 col-sm-6">
+            <button
+              className="card border-2 border-warning text-center w-100 h-100 p-4 btn btn-outline-warning"
+              style={{ borderRadius: 16 }}
+              onClick={() => navigate('/cerrar-turno')}
+            >
+              <i className="bi bi-door-closed-fill text-warning mb-3" style={{ fontSize: 40 }}></i>
+              <div className="fw-bold fs-6">Cerrar turno</div>
+              <div className="text-muted small mt-1">Registrá materiales y cerrá el turno</div>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container-fluid p-3 pb-5">

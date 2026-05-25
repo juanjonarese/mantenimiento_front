@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { cerrarTurno, obtenerTurnoActivo, abrirTurno, obtenerMaterialesCatalogo } from "../services/api";
+import Swal from "sweetalert2";
 
 export default function CerrarTurnoPage() {
   const navigate = useNavigate();
@@ -77,6 +78,53 @@ export default function CerrarTurnoPage() {
   async function handleCerrar(e) {
     e.preventDefault();
     if (!turno) return;
+
+    // Validar que se hayan agregado materiales
+    if (listaUsados.length === 0) {
+      // Si el usuario escribió cantidad pero no presionó Agregar, avisarle
+      const cantPendiente = parseFloat(cantInput);
+      const tienePendiente = cantInput && !isNaN(cantPendiente) && cantPendiente > 0;
+
+      await Swal.fire({
+        title: 'Falta registrar materiales',
+        html: tienePendiente
+          ? 'Escribiste una cantidad pero no la agregaste a la lista.<br>Presioná <strong>Agregar</strong> antes de cerrar el turno.'
+          : 'Tenés que registrar al menos un material antes de cerrar el turno.',
+        icon: 'error',
+        confirmButtonColor: '#0d6efd',
+        confirmButtonText: 'Entendido',
+      });
+      return;
+    }
+
+    // Si tiene cantidad escrita pero no agregada, avisar antes de continuar
+    const cantPendiente = parseFloat(cantInput);
+    if (cantInput && !isNaN(cantPendiente) && cantPendiente > 0) {
+      const { isConfirmed: agregarPendiente } = await Swal.fire({
+        title: 'Cantidad sin agregar',
+        html: 'Escribiste una cantidad pero no la agregaste a la lista.<br>¿Querés agregarla antes de cerrar?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#0d6efd',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, agregar',
+        cancelButtonText: 'No, continuar igual',
+      });
+      if (agregarPendiente) { handleAgregar(); return; }
+    }
+
+    const { isConfirmed } = await Swal.fire({
+      title: '¿Cerrar turno?',
+      html: `Se registrarán <strong>${listaUsados.length} material${listaUsados.length !== 1 ? 'es' : ''}</strong> y el turno quedará cerrado.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Sí, cerrar turno',
+      cancelButtonText: 'Cancelar',
+    });
+
+    if (!isConfirmed) return;
 
     const materialesPayload = listaUsados.map(({ nombre, cantidad, unidad }) => ({
       nombre, cantidad, unidad,
@@ -192,8 +240,8 @@ export default function CerrarTurnoPage() {
                     {matSeleccionado?.unidad || ""}
                   </span>
 
-                  <button type="button" className="btn btn-primary px-3 flex-shrink-0" onClick={handleAgregar}>
-                    <i className="bi bi-plus-lg"></i>
+                  <button type="button" className="btn btn-primary flex-shrink-0" onClick={handleAgregar}>
+                    <i className="bi bi-plus-lg me-1"></i>Agregar
                   </button>
                 </div>
 

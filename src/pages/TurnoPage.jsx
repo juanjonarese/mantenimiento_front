@@ -1,6 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
 import { obtenerTurnoActivo } from "../services/api";
+import { obtenerTrabajos, eliminarTrabajo } from "../db/db";
 
 function formatHora(fecha) {
   if (!fecha) return "—";
@@ -18,45 +20,76 @@ function calcularHoras(fechaInicio) {
   return diff.toFixed(1);
 }
 
+const COLORES_OP = {
+  'Sin iniciar': 'secondary',
+  'En proceso': 'warning',
+  'Terminado': 'success',
+  'Finalizado': 'success',
+};
+
 export default function TurnoPage() {
   const navigate = useNavigate();
   const [turno, setTurno] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
+  const [trabajos, setTrabajos] = useState([]);
   const nombre = localStorage.getItem("nombre") || "";
+
+  const cargarTrabajos = useCallback(async () => {
+    const turnoId = localStorage.getItem('turnoId');
+    if (!turnoId) { setTrabajos([]); return; }
+    const todos = await obtenerTrabajos();
+    setTrabajos(todos.filter((t) => t.turnoId === turnoId));
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('focus', cargarTrabajos);
+    return () => window.removeEventListener('focus', cargarTrabajos);
+  }, [cargarTrabajos]);
 
   useEffect(() => {
     const turnoId = localStorage.getItem("turnoId");
     const esDev = import.meta.env.DEV;
 
-    if (!turnoId && !esDev) {
-      navigate("/login");
-      return;
-    }
+    if (!turnoId && !esDev) { navigate("/login"); return; }
 
     if (esDev && !turnoId) {
       setTurno({ _id: "dev-turno", fechaInicio: new Date().toISOString() });
+      cargarTrabajos();
       setCargando(false);
       return;
     }
 
     obtenerTurnoActivo()
       .then(({ turno: t }) => {
-        if (!t) {
-          localStorage.removeItem("turnoId");
-          navigate("/login");
-        } else {
-          setTurno(t);
-        }
+        if (!t) { localStorage.removeItem("turnoId"); navigate("/login"); }
+        else { setTurno(t); cargarTrabajos(); }
       })
       .catch(() => {
         setError("Sin conexión — mostrando datos guardados");
         const id = localStorage.getItem("turnoId");
-        if (id) setTurno({ _id: id, fechaInicio: null });
+        if (id) { setTurno({ _id: id, fechaInicio: null }); cargarTrabajos(); }
         else navigate("/login");
       })
       .finally(() => setCargando(false));
   }, []);
+
+
+  async function handleEliminar(t) {
+    const { isConfirmed } = await Swal.fire({
+      title: '¿Eliminar trabajo?',
+      html: `<strong>${t.calle1} y ${t.calle2}</strong>`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+    });
+    if (!isConfirmed) return;
+    await eliminarTrabajo(t.id);
+    cargarTrabajos();
+  }
 
   if (cargando) {
     return (
@@ -65,6 +98,10 @@ export default function TurnoPage() {
       </div>
     );
   }
+
+  const supTotal = trabajos.reduce((s, t) =>
+    s + (t.items || []).reduce((si, i) => si + (i.superficie || 0), 0), 0
+  ).toFixed(2);
 
   return (
     <div className="container-fluid p-3 pb-5">
@@ -77,8 +114,7 @@ export default function TurnoPage() {
       {/* Header */}
       <div className="mb-4">
         <h5 className="fw-bold mb-1">
-          <i className="bi bi-clock-history me-2 text-success"></i>
-          Turno activo
+          <i className="bi bi-clock-history me-2 text-success"></i>Turno activo
         </h5>
         {nombre && <div className="text-muted small">Supervisor: {nombre}</div>}
       </div>
@@ -102,25 +138,80 @@ export default function TurnoPage() {
       </div>
 
       {/* Acciones */}
-      <div className="d-flex flex-column gap-3">
-        <button
-          className="btn btn-primary btn-lg w-100 py-3"
-          onClick={() => navigate("/nuevo")}
-        >
-          <i className="bi bi-plus-circle me-2 fs-5"></i>
-          Nuevo trabajo
+      <div className="d-flex flex-column gap-3 mb-4">
+        <button className="btn btn-primary btn-lg w-100 py-3" onClick={() => navigate("/nuevo")}>
+          <i className="bi bi-plus-circle me-2 fs-5"></i>Nuevo trabajo
         </button>
-
-        <div className="mt-2">
-          <button
-            className="btn btn-outline-danger btn-lg w-100 py-3"
-            onClick={() => navigate("/cerrar-turno")}
-          >
-            <i className="bi bi-door-closed me-2 fs-5"></i>
-            Cerrar turno
-          </button>
-        </div>
+        <button className="btn btn-outline-danger btn-lg w-100 py-3" onClick={() => navigate("/cerrar-turno")}>
+          <i className="bi bi-door-closed me-2 fs-5"></i>Cerrar turno
+        </button>
       </div>
+
+      {/* Trabajos del turno */}
+      <div className="mb-2 d-flex align-items-center justify-content-between">
+        <span className="fw-semibold">
+          <i className="bi bi-tools me-1 text-primary"></i>Trabajos del turno
+          {trabajos.length > 0 && (
+            <span className="ms-2 badge bg-primary">{trabajos.length}</span>
+          )}
+        </span>
+        {trabajos.length > 0 && (
+          <span className="text-muted small">{supTotal} m² total</span>
+        )}
+      </div>
+
+      {trabajos.length === 0 ? (
+        <div className="card border-dashed text-center py-4 text-muted small">
+          <i className="bi bi-clipboard fs-3 mb-2 d-block opacity-50"></i>
+          Todavía no cargaste trabajos en este turno
+        </div>
+      ) : (
+        <div className="d-flex flex-column gap-2">
+          {trabajos.map((t) => {
+            const sup = (t.items || []).reduce((s, i) => s + (i.superficie || 0), 0).toFixed(2);
+            const color = COLORES_OP[t.estadoOperativo] || 'secondary';
+            return (
+              <div key={t.id} className="card border-start border-3 border-primary shadow-sm">
+                <div className="card-body py-2 px-3">
+                  <div className="d-flex justify-content-between align-items-start gap-2">
+                    <div className="min-w-0">
+                      <div className="fw-semibold text-truncate">
+                        <i className="bi bi-geo-alt me-1 text-primary"></i>
+                        {t.calle1} y {t.calle2}
+                      </div>
+                      <div className="d-flex align-items-center gap-2 mt-1 flex-wrap">
+                        <span className={`badge bg-${color} text-${color === 'warning' ? 'dark' : 'white'}`} style={{ fontSize: 11 }}>
+                          {t.estadoOperativo}
+                        </span>
+                        <span className="badge bg-primary bg-opacity-75" style={{ fontSize: 11 }}>{sup} m²</span>
+                        {(t.items || []).length > 0 && (
+                          <span className="text-muted" style={{ fontSize: 11 }}>
+                            {(t.items || []).map(i => i.tipoTrabajo).join(' · ')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="d-flex gap-2 flex-shrink-0">
+                      <button
+                        className="btn btn-sm btn-outline-warning py-1 px-2"
+                        onClick={() => navigate(`/editar/${t.id}`)}
+                      >
+                        <i className="bi bi-pencil"></i>
+                      </button>
+                      <button
+                        className="btn btn-sm btn-outline-danger py-1 px-2"
+                        onClick={() => handleEliminar(t)}
+                      >
+                        <i className="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
