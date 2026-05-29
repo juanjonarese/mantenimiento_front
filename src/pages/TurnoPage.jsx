@@ -179,6 +179,11 @@ export default function TurnoPage() {
                         <i className="bi bi-geo-alt me-1 text-primary"></i>
                         {t.calle1} y {t.calle2}
                       </div>
+                      {t.clienteNombre && (
+                        <div className="text-muted small mt-1">
+                          <i className="bi bi-person-vcard me-1"></i>{t.clienteNombre}
+                        </div>
+                      )}
                       <div className="d-flex align-items-center gap-2 mt-1 flex-wrap">
                         <span className={`badge bg-${color} text-${color === 'warning' ? 'dark' : 'white'}`} style={{ fontSize: 11 }}>
                           {t.estadoOperativo}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { cerrarTurno, obtenerTurnoActivo, abrirTurno, obtenerMaterialesCatalogo, actualizarMaterialCatalogo } from "../services/api";
+import { obtenerTrabajos } from "../db/db";
 import Swal from "sweetalert2";
 
 export default function CerrarTurnoPage() {
@@ -18,6 +19,7 @@ export default function CerrarTurnoPage() {
   const [cargando, setCargando]         = useState(true);
   const [guardando, setGuardando]       = useState(false);
   const [error, setError]               = useState("");
+  const [tieneTrabajos, setTieneTrabajos] = useState(false);
 
   useEffect(() => {
     const turnoId = localStorage.getItem("turnoId");
@@ -47,7 +49,14 @@ export default function CerrarTurnoPage() {
         setError("No se pudieron cargar los materiales. Verificá la conexión.");
       });
 
-    Promise.all([cargarTurno, cargarMateriales]).finally(() => setCargando(false));
+    const cargarTrabajos = obtenerTrabajos()
+      .then((todos) => {
+        const delTurno = todos.filter((t) => t.turnoId === turnoId);
+        setTieneTrabajos(delTurno.length > 0);
+      })
+      .catch(() => {});
+
+    Promise.all([cargarTurno, cargarMateriales, cargarTrabajos]).finally(() => setCargando(false));
   }, []);
 
   // ── Agregar material ──────────────────────────────────────────────────────
@@ -79,9 +88,8 @@ export default function CerrarTurnoPage() {
     e.preventDefault();
     if (!turno) return;
 
-    // Validar que se hayan agregado materiales
-    if (listaUsados.length === 0) {
-      // Si el usuario escribió cantidad pero no presionó Agregar, avisarle
+    // Validar materiales solo si hubo trabajos en el turno
+    if (tieneTrabajos && listaUsados.length === 0) {
       const cantPendiente = parseFloat(cantInput);
       const tienePendiente = cantInput && !isNaN(cantPendiente) && cantPendiente > 0;
 
@@ -95,6 +103,21 @@ export default function CerrarTurnoPage() {
         confirmButtonText: 'Entendido',
       });
       return;
+    }
+
+    // Si no hubo trabajos, confirmar cierre sin materiales
+    if (!tieneTrabajos) {
+      const { isConfirmed } = await Swal.fire({
+        title: 'Sin trabajos registrados',
+        text: 'No cargaste ningún trabajo en este turno. ¿Querés cerrarlo igual?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, cerrar turno',
+        cancelButtonText: 'Cancelar',
+      });
+      if (!isConfirmed) return;
     }
 
     // Si tiene cantidad escrita pero no agregada, avisar antes de continuar
