@@ -135,8 +135,10 @@ export const actualizarTrabajoBackend = async (id, datos) => {
 
 export const eliminarTrabajoBackend = async (id) => {
   if (IS_DEV) return { ok: true };
+  const token = localStorage.getItem("token");
   const response = await fetch(`${API_URL}/trabajos/${id}`, {
     method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
   });
   return handleResponse(response);
 };

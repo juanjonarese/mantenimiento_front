@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { obtenerTrabajos, eliminarTrabajo, importarDesdeBackend } from '../db/db';
-import { obtenerTrabajosBackend } from '../services/api';
+import { obtenerTrabajosBackend, eliminarTrabajoBackend } from '../services/api';
 import { COLORES_ESTADO_OP, COLORES_ESTADO_ADMIN } from '../constants';
 import ImportarExcelModal from '../components/ImportarExcelModal';
 
@@ -33,7 +33,7 @@ export default function ListaPage() {
 
   useEffect(() => { cargar(); }, []);
 
-  async function handleEliminar(id) {
+  async function handleEliminar(t) {
     const { isConfirmed } = await Swal.fire({
       title: '¿Eliminar trabajo?',
       text: 'Esta acción no se puede deshacer.',
@@ -45,7 +45,12 @@ export default function ListaPage() {
       cancelButtonText: 'Cancelar',
     });
     if (!isConfirmed) return;
-    await eliminarTrabajo(id);
+    // Borrar del backend primero (usa _id de MongoDB)
+    if (t._id) {
+      try { await eliminarTrabajoBackend(t._id); } catch { /* sin conexión, solo borra local */ }
+    }
+    // Borrar del IndexedDB local (usa id = idLocal)
+    await eliminarTrabajo(t.id);
     cargar();
   }
 
@@ -177,7 +182,7 @@ export default function ListaPage() {
                         <Link to={`/editar/${t.id}`} className="btn btn-sm btn-outline-secondary">
                           <i className="bi bi-pencil"></i>
                         </Link>
-                        <button className="btn btn-sm btn-outline-danger" onClick={() => handleEliminar(t.id)}>
+                        <button className="btn btn-sm btn-outline-danger" onClick={() => handleEliminar(t)}>
                           <i className="bi bi-trash"></i>
                         </button>
                       </div>
@@ -244,7 +249,7 @@ export default function ListaPage() {
                                 <span>Editar</span>
                               </Link>
                               <button className="btn btn-sm btn-outline-danger d-flex align-items-center gap-1"
-                                onClick={() => handleEliminar(t.id)}>
+                                onClick={() => handleEliminar(t)}>
                                 <i className="bi bi-trash"></i>
                                 <span>Eliminar</span>
                               </button>
