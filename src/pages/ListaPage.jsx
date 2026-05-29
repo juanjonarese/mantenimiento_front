@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import Swal from 'sweetalert2';
 import { obtenerTrabajos, eliminarTrabajo, importarDesdeBackend } from '../db/db';
 import { obtenerTrabajosBackend } from '../services/api';
 import { COLORES_ESTADO_OP, COLORES_ESTADO_ADMIN } from '../constants';
@@ -33,7 +34,17 @@ export default function ListaPage() {
   useEffect(() => { cargar(); }, []);
 
   async function handleEliminar(id) {
-    if (!confirm('¿Eliminar este trabajo?')) return;
+    const { isConfirmed } = await Swal.fire({
+      title: '¿Eliminar trabajo?',
+      text: 'Esta acción no se puede deshacer.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+    });
+    if (!isConfirmed) return;
     await eliminarTrabajo(id);
     cargar();
   }
