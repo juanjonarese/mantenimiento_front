@@ -7,6 +7,8 @@ import { COLORES_ESTADO_OP, COLORES_ESTADO_ADMIN } from '../constants';
 import ImportarExcelModal from '../components/ImportarExcelModal';
 
 export default function ListaPage() {
+  const esAdmin = localStorage.getItem('rol') === 'admin';
+
   const [trabajos, setTrabajos] = useState([]);
   const [filtroEstado, setFiltroEstado] = useState('');
   const [filtroCertif, setFiltroCertif] = useState('');
@@ -93,19 +95,21 @@ export default function ListaPage() {
               {filtrados.length} de {trabajos.length} trabajo{trabajos.length !== 1 ? 's' : ''}
             </small>
           </div>
-          <div className="d-flex gap-2">
-            <button
-              className="btn btn-outline-success d-flex align-items-center gap-2"
-              onClick={() => setMostrarImportar(true)}
-            >
-              <i className="bi bi-file-earmark-excel"></i>
-              <span className="d-none d-sm-inline">Importar Excel</span>
-            </button>
-            <Link to="/nuevo" className="btn btn-primary d-flex align-items-center gap-2">
-              <i className="bi bi-plus-lg"></i>
-              <span>Nuevo trabajo</span>
-            </Link>
-          </div>
+          {esAdmin && (
+            <div className="d-flex gap-2">
+              <button
+                className="btn btn-outline-success d-flex align-items-center gap-2"
+                onClick={() => setMostrarImportar(true)}
+              >
+                <i className="bi bi-file-earmark-excel"></i>
+                <span className="d-none d-sm-inline">Importar Excel</span>
+              </button>
+              <Link to="/nuevo" className="btn btn-primary d-flex align-items-center gap-2">
+                <i className="bi bi-plus-lg"></i>
+                <span>Nuevo trabajo</span>
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* Filtros */}
@@ -146,31 +150,45 @@ export default function ListaPage() {
           </div>
         ) : (
           <>
-            {/* ── MOBILE: cards (oculto en md+) ── */}
-            <div className="d-flex flex-column gap-2 d-md-none">
+            {/* ── TOTALES ── */}
+            <div className="d-flex gap-3 flex-wrap mb-3 px-1 small text-muted fw-semibold">
+              <span>Sendas: <span className="text-primary">{filtrados.reduce((a, t) => a + getSup(t, 'SENDAS'), 0).toFixed(1)} m²</span></span>
+              <span>Rampas: <span className="text-primary">{filtrados.reduce((a, t) => a + getSup(t, 'RAMPAS'), 0).toFixed(1)} m²</span></span>
+              <span>Cordones: <span className="text-primary">{filtrados.reduce((a, t) => a + getSup(t, 'CORDONES'), 0).toFixed(1)} m²</span></span>
+            </div>
+
+            {/* ── CARDS ── */}
+            <div className="row g-2">
               {paginados.map((t) => (
-                <div key={t.id} className="card">
-                  <div className="card-body py-2 px-3">
-                    <div className="d-flex justify-content-between align-items-start">
-                      <div className="flex-grow-1 me-2">
-                        <div className="fw-semibold">{t.calle1} y {t.calle2}</div>
-                        <div className="small text-muted mb-2">
-                          {new Date(t.fechaCarga).toLocaleString('es-AR', {
-                            day: '2-digit', month: '2-digit', year: 'numeric',
-                            hour: '2-digit', minute: '2-digit',
+                <div key={t.id} className="col-12 col-md-6 col-xl-4">
+                  <div className="card h-100">
+                    <div className="card-body py-2 px-3">
+
+                      {/* Intersección + fecha */}
+                      <div className="d-flex justify-content-between align-items-start mb-1">
+                        <div className="fw-semibold lh-sm">{t.calle1} y {t.calle2}</div>
+                        <span className="small text-muted text-nowrap ms-2">
+                          {new Date(t.fechaCarga).toLocaleDateString('es-AR', {
+                            day: '2-digit', month: '2-digit', year: '2-digit',
                           })}
-                        </div>
-                        <div className="d-flex gap-2 flex-wrap mb-1" style={{ fontSize: 12 }}>
-                          {getSup(t, 'SENDAS') > 0 && (
-                            <span className="text-muted">Sendas <strong>{getSup(t, 'SENDAS').toFixed(1)}</strong> m²</span>
-                          )}
-                          {getSup(t, 'RAMPAS') > 0 && (
-                            <span className="text-muted">Rampas <strong>{getSup(t, 'RAMPAS').toFixed(1)}</strong> m²</span>
-                          )}
-                          {getSup(t, 'CORDONES') > 0 && (
-                            <span className="text-muted">Cordones <strong>{getSup(t, 'CORDONES').toFixed(1)}</strong> m²</span>
-                          )}
-                        </div>
+                        </span>
+                      </div>
+
+                      {/* Superficies */}
+                      <div className="d-flex gap-3 flex-wrap mb-2" style={{ fontSize: 12 }}>
+                        {getSup(t, 'SENDAS') > 0 && (
+                          <span className="text-muted">Sendas <strong>{getSup(t, 'SENDAS').toFixed(1)}</strong> m²</span>
+                        )}
+                        {getSup(t, 'RAMPAS') > 0 && (
+                          <span className="text-muted">Rampas <strong>{getSup(t, 'RAMPAS').toFixed(1)}</strong> m²</span>
+                        )}
+                        {getSup(t, 'CORDONES') > 0 && (
+                          <span className="text-muted">Cordones <strong>{getSup(t, 'CORDONES').toFixed(1)}</strong> m²</span>
+                        )}
+                      </div>
+
+                      {/* Badges + acciones */}
+                      <div className="d-flex align-items-center justify-content-between gap-2 flex-wrap">
                         <div className="d-flex gap-1 flex-wrap">
                           <span className={`badge bg-${COLORES_ESTADO_OP[t.estadoOperativo]}`}>
                             {t.estadoOperativo}
@@ -184,108 +202,25 @@ export default function ListaPage() {
                             </span>
                           )}
                         </div>
+                        <div className="d-flex gap-1">
+                          <Link to={`/detalle/${t.id}`} className="btn btn-sm btn-outline-primary">
+                            <i className="bi bi-eye"></i>
+                          </Link>
+                          {esAdmin && (<>
+                            <Link to={`/editar/${t.id}`} className="btn btn-sm btn-outline-secondary">
+                              <i className="bi bi-pencil"></i>
+                            </Link>
+                            <button className="btn btn-sm btn-outline-danger" onClick={() => handleEliminar(t)}>
+                              <i className="bi bi-trash"></i>
+                            </button>
+                          </>)}
+                        </div>
                       </div>
-                      <div className="d-flex flex-column gap-1">
-                        <Link to={`/detalle/${t.id}`} className="btn btn-sm btn-outline-primary">
-                          <i className="bi bi-eye"></i>
-                        </Link>
-                        <Link to={`/editar/${t.id}`} className="btn btn-sm btn-outline-secondary">
-                          <i className="bi bi-pencil"></i>
-                        </Link>
-                        <button className="btn btn-sm btn-outline-danger" onClick={() => handleEliminar(t)}>
-                          <i className="bi bi-trash"></i>
-                        </button>
-                      </div>
+
                     </div>
                   </div>
                 </div>
               ))}
-            </div>
-
-            {/* ── DESKTOP: tabla (oculto en mobile) ── */}
-            <div className="d-none d-md-block">
-              <div className="card border-0 shadow-sm">
-                <div className="table-responsive">
-                  <table className="table table-hover align-middle mb-0">
-                    <thead className="table-light">
-                      <tr>
-                        <th>Fecha</th>
-                        <th>Intersección</th>
-                        <th className="text-end">Sendas m²</th>
-                        <th className="text-end">Rampas m²</th>
-                        <th className="text-end">Cordones m²</th>
-                        <th>Estado</th>
-                        <th>Certif.</th>
-                        <th>Sync</th>
-                        <th className="text-end">Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {paginados.map((t) => (
-                        <tr key={t.id}>
-                          <td className="small text-nowrap text-muted">
-                            {new Date(t.fechaCarga).toLocaleString('es-AR', {
-                              day: '2-digit', month: '2-digit', year: '2-digit',
-                              hour: '2-digit', minute: '2-digit',
-                            })}
-                          </td>
-                          <td className="fw-semibold">{t.calle1} y {t.calle2}</td>
-                          <td className="text-end">{getSup(t, 'SENDAS') > 0 ? getSup(t, 'SENDAS').toFixed(1) : '—'}</td>
-                          <td className="text-end">{getSup(t, 'RAMPAS') > 0 ? getSup(t, 'RAMPAS').toFixed(1) : '—'}</td>
-                          <td className="text-end">{getSup(t, 'CORDONES') > 0 ? getSup(t, 'CORDONES').toFixed(1) : '—'}</td>
-                          <td>
-                            <span className={`badge bg-${COLORES_ESTADO_OP[t.estadoOperativo]}`}>
-                              {t.estadoOperativo}
-                            </span>
-                          </td>
-                          <td>
-                            <span className={`badge bg-${COLORES_ESTADO_ADMIN[t.estadoAdmin]}`}>
-                              {t.estadoAdmin}
-                            </span>
-                          </td>
-                          <td>
-                            {t.sincronizado
-                              ? <i className="bi bi-cloud-check text-success"></i>
-                              : <i className="bi bi-cloud-slash text-secondary"></i>}
-                          </td>
-                          <td className="text-end">
-                            <div className="d-flex gap-2 justify-content-end">
-                              <Link to={`/detalle/${t.id}`} className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1">
-                                <i className="bi bi-eye"></i>
-                                <span>Ver</span>
-                              </Link>
-                              <Link to={`/editar/${t.id}`} className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1">
-                                <i className="bi bi-pencil"></i>
-                                <span>Editar</span>
-                              </Link>
-                              <button className="btn btn-sm btn-outline-danger d-flex align-items-center gap-1"
-                                onClick={() => handleEliminar(t)}>
-                                <i className="bi bi-trash"></i>
-                                <span>Eliminar</span>
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot className="table-light">
-                      <tr>
-                        <td colSpan={2} className="small fw-semibold">Total ({filtrados.length})</td>
-                        <td className="text-end fw-bold text-primary">
-                          {filtrados.reduce((a, t) => a + getSup(t, 'SENDAS'), 0).toFixed(1)}
-                        </td>
-                        <td className="text-end fw-bold text-primary">
-                          {filtrados.reduce((a, t) => a + getSup(t, 'RAMPAS'), 0).toFixed(1)}
-                        </td>
-                        <td className="text-end fw-bold text-primary">
-                          {filtrados.reduce((a, t) => a + getSup(t, 'CORDONES'), 0).toFixed(1)}
-                        </td>
-                        <td colSpan={4}></td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              </div>
             </div>
 
             {/* ── PAGINADOR ── */}
