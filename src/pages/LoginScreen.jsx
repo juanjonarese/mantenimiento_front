@@ -53,7 +53,7 @@ const LoginScreen = () => {
           } else {
             const { turno: nuevoTurno } = await abrirTurno();
             localStorage.setItem("turnoId", nuevoTurno._id);
-            navigate("/turno");
+            navigate("/nuevo");
           }
         } catch {
           navigate("/turno");
