@@ -85,6 +85,16 @@ export const eliminarUsuario = async (id) => {
 
 // ============= TRABAJOS =============
 
+export const importarTrabajos = async (trabajos) => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/trabajos/importar`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ trabajos }),
+  });
+  return handleResponse(response);
+};
+
 export const sincronizarTrabajos = async (trabajos) => {
   if (IS_DEV) return { ok: true, sincronizados: 0 };
   const token = localStorage.getItem("token");

@@ -3,12 +3,14 @@ import { Link } from 'react-router-dom';
 import { obtenerTrabajos, eliminarTrabajo, importarDesdeBackend } from '../db/db';
 import { obtenerTrabajosBackend } from '../services/api';
 import { COLORES_ESTADO_OP, COLORES_ESTADO_ADMIN } from '../constants';
+import ImportarExcelModal from '../components/ImportarExcelModal';
 
 export default function ListaPage() {
   const [trabajos, setTrabajos] = useState([]);
   const [filtroEstado, setFiltroEstado] = useState('');
   const [filtroCertif, setFiltroCertif] = useState('');
   const [sincronizando, setSincronizando] = useState(false);
+  const [mostrarImportar, setMostrarImportar] = useState(false);
 
   const cargar = async () => {
     // Intentar bajar datos del backend al IndexedDB local antes de leer
@@ -60,10 +62,19 @@ export default function ListaPage() {
               {filtrados.length} de {trabajos.length} trabajo{trabajos.length !== 1 ? 's' : ''}
             </small>
           </div>
-          <Link to="/nuevo" className="btn btn-primary d-flex align-items-center gap-2">
-            <i className="bi bi-plus-lg"></i>
-            <span>Nuevo trabajo</span>
-          </Link>
+          <div className="d-flex gap-2">
+            <button
+              className="btn btn-outline-success d-flex align-items-center gap-2"
+              onClick={() => setMostrarImportar(true)}
+            >
+              <i className="bi bi-file-earmark-excel"></i>
+              <span className="d-none d-sm-inline">Importar Excel</span>
+            </button>
+            <Link to="/nuevo" className="btn btn-primary d-flex align-items-center gap-2">
+              <i className="bi bi-plus-lg"></i>
+              <span>Nuevo trabajo</span>
+            </Link>
+          </div>
         </div>
 
         {/* Filtros */}
@@ -227,6 +238,12 @@ export default function ListaPage() {
           </>
         )}
       </div>
+      {mostrarImportar && (
+        <ImportarExcelModal
+          onClose={() => setMostrarImportar(false)}
+          onImportado={cargar}
+        />
+      )}
     </div>
   );
 }
