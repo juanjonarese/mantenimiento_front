@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { guardarTrabajo, obtenerTrabajoPorId } from '../db/db';
+import { obtenerClientes } from '../services/api';
 import { useGPS } from '../hooks/useGPS';
 import { comprimirMedia } from '../utils/comprimirMedia';
 import { TIPOS_TRABAJO, ESTADOS_OPERATIVO, ESTADOS_ADMIN } from '../constants';
@@ -31,6 +32,7 @@ const DEFAULT_LAT = -26.8241;
 const DEFAULT_LNG = -65.2226;
 
 const FORM_VACIO = {
+  clienteId: '', clienteNombre: '',
   calle1: '', calle2: '', lat: '', lng: '',
   trabajos: [],
   estadoOperativo: 'Sin iniciar', estadoAdmin: 'Sin certificar',
@@ -51,6 +53,8 @@ export default function NuevoTrabajoPage() {
   const [mapaListo, setMapaListo] = useState(false);
   const [gpsFallo, setGpsFallo] = useState(false);
   const [guardadoOk, setGuardadoOk] = useState(false);
+  const [clientes, setClientes] = useState([]);
+  const [cargandoClientes, setCargandoClientes] = useState(true);
 
   // Modal
   const [busqueda, setBusqueda] = useState('');
@@ -70,6 +74,13 @@ export default function NuevoTrabajoPage() {
   const esAdmin = true;
 
   useEffect(() => {
+    obtenerClientes()
+      .then(({ clientes: c }) => setClientes(c || []))
+      .catch(() => {})
+      .finally(() => setCargandoClientes(false));
+  }, []);
+
+  useEffect(() => {
     if (id) {
       obtenerTrabajoPorId(Number(id)).then((t) => {
         if (!t) return navigate('/lista');
@@ -82,6 +93,7 @@ export default function NuevoTrabajoPage() {
           fotos: item.fotos || [],
         }));
         setForm({
+          clienteId: t.clienteId || '', clienteNombre: t.clienteNombre || '',
           calle1: t.calle1, calle2: t.calle2,
           lat: t.lat, lng: t.lng,
           trabajos,
@@ -113,6 +125,12 @@ export default function NuevoTrabajoPage() {
 
   function handleChange(e) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  }
+
+  function handleClienteChange(e) {
+    const clienteId = e.target.value;
+    const cliente = clientes.find((c) => c._id === clienteId);
+    setForm((prev) => ({ ...prev, clienteId, clienteNombre: cliente?.nombre || '' }));
   }
 
   async function handleGPS() {
@@ -225,6 +243,7 @@ export default function NuevoTrabajoPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     setErrorForm('');
+    if (!form.clienteId) return setErrorForm('Seleccioná el cliente');
     if (!form.calle1 || !form.calle2) return setErrorForm('Ingresá las dos calles de la intersección');
     if (form.trabajos.length === 0) return setErrorForm('Agregá al menos un trabajo');
     if (!form.lat || !form.lng) return setErrorForm('Tomá la ubicación GPS o ajustá el marcador en el mapa');
@@ -249,6 +268,8 @@ export default function NuevoTrabajoPage() {
         usuario: localStorage.getItem('email') || '',
         lat: parseFloat(form.lat),
         lng: parseFloat(form.lng),
+        clienteId: form.clienteId,
+        clienteNombre: form.clienteNombre,
         calle1: form.calle1.trim(),
         calle2: form.calle2.trim(),
         items: itemsCalculados,
@@ -347,6 +368,37 @@ export default function NuevoTrabajoPage() {
       </h5>
 
       <form onSubmit={handleSubmit}>
+        {/* CLIENTE */}
+        <div className="card mb-3">
+          <div className="card-header bg-light fw-semibold small">
+            <i className="bi bi-person-vcard me-1"></i> Cliente *
+          </div>
+          <div className="card-body">
+            {cargandoClientes ? (
+              <div className="d-flex align-items-center gap-2 text-muted small">
+                <span className="spinner-border spinner-border-sm"></span>
+                Cargando clientes...
+              </div>
+            ) : clientes.length === 0 ? (
+              <div className="text-muted small">
+                <i className="bi bi-exclamation-circle me-1 text-warning"></i>
+                No hay clientes cargados. Pedile al administrador que agregue clientes.
+              </div>
+            ) : (
+              <select
+                className="form-select"
+                value={form.clienteId}
+                onChange={handleClienteChange}
+              >
+                <option value="">Seleccioná el cliente...</option>
+                {clientes.map((c) => (
+                  <option key={c._id} value={c._id}>{c.nombre}</option>
+                ))}
+              </select>
+            )}
+          </div>
+        </div>
+
         {/* UBICACIÓN */}
         <div className="card mb-3">
           <div className="card-header bg-light fw-semibold small">

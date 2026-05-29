@@ -6,7 +6,7 @@ import {
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
 import * as XLSX from 'xlsx';
-import { obtenerTrabajosBackend, obtenerEstadisticas } from '../services/api';
+import { obtenerTrabajosBackend, obtenerEstadisticas, obtenerTodosMaterialesCatalogo, obtenerConsumoMateriales } from '../services/api';
 import { TIPOS_TRABAJO, COLORES_ESTADO_OP, COLORES_ESTADO_ADMIN } from '../constants';
 
 const COLOR_PIN = {
@@ -47,6 +47,8 @@ export default function PanelPage() {
   const [estadisticas, setEstadisticas] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
+  const [catalogo, setCatalogo] = useState([]);
+  const [consumoTurnos, setConsumoTurnos] = useState([]);
   const [pagina, setPagina] = useState(1);
   const POR_PAGINA = 15;
 
@@ -61,10 +63,14 @@ export default function PanelPage() {
     try {
       const { material, ...backendFiltros } = filtros;
       const params = Object.fromEntries(Object.entries(backendFiltros).filter(([, v]) => v !== ''));
-      const [{ trabajos: t }, { estadisticas: e }] = await Promise.all([
+      const [{ trabajos: t }, { estadisticas: e }, catRes, consumoRes] = await Promise.all([
         obtenerTrabajosBackend(params),
         obtenerEstadisticas(),
+        obtenerTodosMaterialesCatalogo().catch(() => ({ materiales: [] })),
+        obtenerConsumoMateriales().catch(() => ({ consumo: [] })),
       ]);
+      setCatalogo(catRes.materiales || []);
+      setConsumoTurnos(consumoRes.consumo || []);
       let resultado = t || [];
       if (material) {
         resultado = resultado.filter((tj) =>
@@ -133,6 +139,26 @@ export default function PanelPage() {
       .map((m) => ({ ...m, cantidad: parseFloat(m.cantidad.toFixed(2)) }))
       .sort((a, b) => b.cantidad - a.cantidad);
   })();
+
+  const todosItems = trabajos.flatMap((t) => t.items || []);
+
+  const rendimientoMateriales = catalogo
+    .filter((mat) => mat.tiposTarea && mat.tiposTarea.length > 0)
+    .map((mat) => {
+      const consumido = consumoTurnos.find((c) => c.nombre === mat.nombre)?.cantidad || 0;
+      const m2 = todosItems
+        .filter((item) => mat.tiposTarea.includes(item.tipoTrabajo))
+        .reduce((sum, item) => sum + (item.superficie || 0), 0);
+      return {
+        nombre: mat.nombre,
+        unidad: mat.unidad,
+        tiposTarea: mat.tiposTarea,
+        consumido: parseFloat(consumido.toFixed(3)),
+        m2: parseFloat(m2.toFixed(2)),
+        ratio: m2 > 0 ? parseFloat((consumido / m2).toFixed(4)) : null,
+      };
+    })
+;
 
   const porDiaSuperficie = (() => {
     const mapa = {};
@@ -499,6 +525,72 @@ export default function PanelPage() {
                     </table>
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── RENDIMIENTO DE MATERIALES ── */}
+        <div className="card mb-4">
+          <div className="card-header fw-semibold small">
+            <i className="bi bi-speedometer2 me-1"></i>Rendimiento de materiales
+            {rendimientoMateriales.length > 0 && (
+              <span className="text-muted fw-normal ms-2">
+                ({rendimientoMateriales.length} material{rendimientoMateriales.length !== 1 ? 'es' : ''} configurado{rendimientoMateriales.length !== 1 ? 's' : ''})
+              </span>
+            )}
+          </div>
+          {rendimientoMateriales.length === 0 ? (
+            <div className="card-body text-center text-muted py-4">
+              <i className="bi bi-speedometer2 display-4 d-block mb-2"></i>
+              <p className="mb-1">Sin materiales configurados</p>
+              <p className="small">En <strong>Materiales</strong>, asociá cada material a sus tipos de tarea para ver el rendimiento aquí.</p>
+            </div>
+          ) : (
+            <div className="card-body p-0">
+              <div className="table-responsive">
+                <table className="table table-sm table-hover align-middle mb-0">
+                  <thead className="table-light">
+                    <tr>
+                      <th className="small ps-3">Material</th>
+                      <th className="small">Tipos de tarea</th>
+                      <th className="small text-end">Consumido</th>
+                      <th className="small text-end">m² ejecutados</th>
+                      <th className="small text-end pe-3">Rendimiento</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rendimientoMateriales.map((r, i) => (
+                      <tr key={i}>
+                        <td className="small fw-semibold ps-3">{r.nombre}</td>
+                        <td className="small text-muted">
+                          {r.tiposTarea.map((t) => (
+                            <span key={t} className="badge bg-light text-dark border me-1">{t}</span>
+                          ))}
+                        </td>
+                        <td className="small text-end">
+                          {r.consumido > 0
+                            ? <span className="fw-bold text-primary">{r.consumido.toLocaleString('es-AR')} {r.unidad}</span>
+                            : <span className="text-muted">—</span>}
+                        </td>
+                        <td className="small text-end">
+                          {r.m2 > 0
+                            ? <span>{r.m2.toLocaleString('es-AR')} m²</span>
+                            : <span className="text-muted">—</span>}
+                        </td>
+                        <td className="small text-end pe-3">
+                          {r.ratio !== null
+                            ? (
+                              <span className="badge bg-success fs-6 px-2 py-1">
+                                {r.ratio.toLocaleString('es-AR')} {r.unidad}/m²
+                              </span>
+                            )
+                            : <span className="text-muted small">Sin datos aún</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}

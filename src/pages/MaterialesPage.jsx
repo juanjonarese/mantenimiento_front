@@ -6,13 +6,14 @@ import {
   eliminarMaterialCatalogo,
 } from '../services/api';
 import { obtenerMateriales as obtenerMaterialesLocales } from '../db/db';
+import { TIPOS_TRABAJO } from '../constants';
 
 const UNIDADES = ['litros', 'kg', 'unidades', 'm²', 'bolsas', 'tambores'];
 const NOMBRES_SUGERIDOS = [
   'Pintura blanca', 'Pintura amarilla', 'Microesferas',
   'Diluyente', 'Termoplástico', 'Otros',
 ];
-const MODAL_VACIO = { codigo: '', nombre: '', stock: '', unidad: 'litros' };
+const MODAL_VACIO = { codigo: '', nombre: '', stock: '', unidad: 'litros', tiposTarea: [] };
 
 function StockBadge({ stock }) {
   const cls = stock <= 0 ? 'bg-danger' : stock < 10 ? 'bg-warning text-dark' : 'bg-success';
@@ -72,13 +73,29 @@ export default function MaterialesPage() {
 
   function abrirEditar(mat) {
     setEditId(mat._id);
-    setForm({ codigo: mat.codigo || '', nombre: mat.nombre, stock: String(mat.stock), unidad: mat.unidad });
+    setForm({
+      codigo: mat.codigo || '',
+      nombre: mat.nombre,
+      stock: String(mat.stock),
+      unidad: mat.unidad,
+      tiposTarea: mat.tiposTarea || [],
+    });
     setError('');
     setModalAbierto(true);
   }
 
   function handleChange(e) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  }
+
+  function handleTipoTareaChange(tipo) {
+    setForm((prev) => {
+      const ya = prev.tiposTarea.includes(tipo);
+      return {
+        ...prev,
+        tiposTarea: ya ? prev.tiposTarea.filter((t) => t !== tipo) : [...prev.tiposTarea, tipo],
+      };
+    });
   }
 
   async function handleGuardar() {
@@ -88,10 +105,11 @@ export default function MaterialesPage() {
     setGuardando(true);
     try {
       const datos = {
-        codigo: form.codigo.trim(),
-        nombre: form.nombre.trim(),
-        stock: parseFloat(form.stock),
-        unidad: form.unidad,
+        codigo:     form.codigo.trim(),
+        nombre:     form.nombre.trim(),
+        stock:      parseFloat(form.stock),
+        unidad:     form.unidad,
+        tiposTarea: form.tiposTarea,
       };
       if (editId) {
         await actualizarMaterialCatalogo(editId, datos);
@@ -253,6 +271,28 @@ export default function MaterialesPage() {
                     <select className="form-select" name="unidad" value={form.unidad} onChange={handleChange}>
                       {UNIDADES.map((u) => <option key={u}>{u}</option>)}
                     </select>
+                  </div>
+                </div>
+                <div className="mt-3 border-top pt-3">
+                  <label className="form-label fw-semibold small">
+                    <i className="bi bi-link-45deg me-1"></i>Tipos de tarea asociados
+                  </label>
+                  <div className="d-flex flex-wrap gap-2">
+                    {TIPOS_TRABAJO.map((tipo) => (
+                      <div key={tipo} className="form-check form-check-inline m-0">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          id={`tipo-${tipo}`}
+                          checked={form.tiposTarea.includes(tipo)}
+                          onChange={() => handleTipoTareaChange(tipo)}
+                        />
+                        <label className="form-check-label small" htmlFor={`tipo-${tipo}`}>{tipo}</label>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="text-muted small mt-1">
+                    Permite calcular el rendimiento (kg o lts por m²) en el Panel
                   </div>
                 </div>
                 {error && <div className="alert alert-danger py-2 small mt-3">{error}</div>}
