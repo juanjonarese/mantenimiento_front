@@ -42,8 +42,11 @@ export default function ListaPage() {
     return coincideEstado && coincideCertif;
   });
 
-  const tiposLabel = (t) =>
-    t.items?.length ? t.items.map((i) => i.tipoTrabajo).join(' + ') : (t.tipoTrabajo || '—');
+  // Extrae la superficie de un tipo específico, soporta formato items[] y legacy
+  const getSup = (t, tipo) => {
+    if (t.items?.length) return t.items.find((i) => i.tipoTrabajo === tipo)?.superficie || 0;
+    return t.tipoTrabajo === tipo ? (t.superficie || 0) : 0;
+  };
 
   return (
     <div className="lista-page">
@@ -118,14 +121,22 @@ export default function ListaPage() {
                     <div className="d-flex justify-content-between align-items-start">
                       <div className="flex-grow-1 me-2">
                         <div className="fw-semibold">{t.calle1} y {t.calle2}</div>
-                        <div className="small text-muted mb-1">
-                          {tiposLabel(t)} · {t.superficie} m²
-                        </div>
                         <div className="small text-muted mb-2">
                           {new Date(t.fechaCarga).toLocaleString('es-AR', {
                             day: '2-digit', month: '2-digit', year: 'numeric',
                             hour: '2-digit', minute: '2-digit',
                           })}
+                        </div>
+                        <div className="d-flex gap-2 flex-wrap mb-1" style={{ fontSize: 12 }}>
+                          {getSup(t, 'SENDAS') > 0 && (
+                            <span className="text-muted">Sendas <strong>{getSup(t, 'SENDAS')}</strong> m²</span>
+                          )}
+                          {getSup(t, 'RAMPAS') > 0 && (
+                            <span className="text-muted">Rampas <strong>{getSup(t, 'RAMPAS')}</strong> m²</span>
+                          )}
+                          {getSup(t, 'CORDONES') > 0 && (
+                            <span className="text-muted">Cordones <strong>{getSup(t, 'CORDONES')}</strong> m²</span>
+                          )}
                         </div>
                         <div className="d-flex gap-1 flex-wrap">
                           <span className={`badge bg-${COLORES_ESTADO_OP[t.estadoOperativo]}`}>
@@ -167,8 +178,9 @@ export default function ListaPage() {
                       <tr>
                         <th>Fecha</th>
                         <th>Intersección</th>
-                        <th>Tipo</th>
-                        <th className="text-end">m²</th>
+                        <th className="text-end">Sendas m²</th>
+                        <th className="text-end">Rampas m²</th>
+                        <th className="text-end">Cordones m²</th>
                         <th>Estado</th>
                         <th>Certif.</th>
                         <th>Sync</th>
@@ -185,8 +197,9 @@ export default function ListaPage() {
                             })}
                           </td>
                           <td className="fw-semibold">{t.calle1} y {t.calle2}</td>
-                          <td className="small text-muted">{tiposLabel(t)}</td>
-                          <td className="text-end fw-bold text-primary">{t.superficie}</td>
+                          <td className="text-end">{getSup(t, 'SENDAS') || '—'}</td>
+                          <td className="text-end">{getSup(t, 'RAMPAS') || '—'}</td>
+                          <td className="text-end">{getSup(t, 'CORDONES') || '—'}</td>
                           <td>
                             <span className={`badge bg-${COLORES_ESTADO_OP[t.estadoOperativo]}`}>
                               {t.estadoOperativo}
@@ -224,9 +237,15 @@ export default function ListaPage() {
                     </tbody>
                     <tfoot className="table-light">
                       <tr>
-                        <td colSpan={3} className="small fw-semibold">Total</td>
+                        <td colSpan={2} className="small fw-semibold">Total ({filtrados.length})</td>
                         <td className="text-end fw-bold text-primary">
-                          {filtrados.reduce((a, t) => a + (t.superficie || 0), 0).toFixed(1)} m²
+                          {filtrados.reduce((a, t) => a + getSup(t, 'SENDAS'), 0).toFixed(1)}
+                        </td>
+                        <td className="text-end fw-bold text-primary">
+                          {filtrados.reduce((a, t) => a + getSup(t, 'RAMPAS'), 0).toFixed(1)}
+                        </td>
+                        <td className="text-end fw-bold text-primary">
+                          {filtrados.reduce((a, t) => a + getSup(t, 'CORDONES'), 0).toFixed(1)}
                         </td>
                         <td colSpan={4}></td>
                       </tr>
