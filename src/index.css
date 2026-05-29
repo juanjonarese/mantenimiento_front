@@ -212,41 +212,6 @@ body {
 @keyframes spin { to { transform: rotate(360deg); } }
 .spin { display: inline-block; animation: spin 0.8s linear infinite; }
 
-/* ── Dark mode — overrides para elementos custom ── */
-[data-bs-theme="dark"] body {
-  background-color: #111318;
-}
-[data-bs-theme="dark"] .sidebar {
-  background: #1a1d23;
-  border-color: #2e3138;
-}
-[data-bs-theme="dark"] .sidebar-link {
-  color: #9aa0ac;
-}
-[data-bs-theme="dark"] .sidebar-link:hover {
-  background: #24282f;
-  color: #e0e4ec;
-}
-[data-bs-theme="dark"] .sidebar-link.active {
-  background: #1a3a2a;
-  color: #4ade80;
-}
-[data-bs-theme="dark"] .lista-page,
-[data-bs-theme="dark"] .materiales-page,
-[data-bs-theme="dark"] .panel-page {
-  background: #111318;
-}
-[data-bs-theme="dark"] .pintura-content {
-  background: #1a1d23;
-}
-[data-bs-theme="dark"] .page-header {
-  background: #1a1d23 !important;
-  border-color: #2e3138 !important;
-}
-[data-bs-theme="dark"] .panel-header {
-  background: #1a1d23 !important;
-  border-color: #2e3138 !important;
-}
 
 /* ── Popup Leaflet ── */
 .leaflet-popup-content-wrapper {

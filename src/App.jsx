@@ -14,6 +14,7 @@ const CertificacionesPage = lazy(() => import("./pages/CertificacionesPage"));
 const UsuariosPage        = lazy(() => import("./pages/UsuariosPage"));
 const MaterialesPage      = lazy(() => import("./pages/MaterialesPage"));
 const TiposTareaPage      = lazy(() => import("./pages/TiposTareaPage"));
+const ClientesPage        = lazy(() => import("./pages/ClientesPage"));
 const TurnoPage           = lazy(() => import("./pages/TurnoPage"));
 const CerrarTurnoPage     = lazy(() => import("./pages/CerrarTurnoPage"));
 
@@ -77,6 +78,11 @@ function App() {
         <Route path="/tipos-tarea" element={
           <ProtectedRoute roles={['admin']}><Layout fullWidth>
             <Suspense fallback={<Spinner />}><TiposTareaPage /></Suspense>
+          </Layout></ProtectedRoute>
+        } />
+        <Route path="/clientes" element={
+          <ProtectedRoute roles={['admin']}><Layout fullWidth>
+            <Suspense fallback={<Spinner />}><ClientesPage /></Suspense>
           </Layout></ProtectedRoute>
         } />
 

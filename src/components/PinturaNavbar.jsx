@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useTheme } from '../hooks/useTheme';
 import Swal from 'sweetalert2';
 
 const NAV_LINKS = [
@@ -13,6 +12,7 @@ const NAV_LINKS = [
   { to: '/usuarios',       icon: 'people',           label: 'Usuarios',       roles: ['admin']                        },
   { to: '/materiales',     icon: 'box-seam',         label: 'Materiales',     roles: ['admin']                        },
   { to: '/tipos-tarea',    icon: 'tags',             label: 'Tipos de tarea', roles: ['admin']                        },
+  { to: '/clientes',       icon: 'person-vcard',     label: 'Clientes',       roles: ['admin']                        },
   { to: '/cerrar-turno',   icon: 'door-closed',      label: 'Cerrar turno',   roles: ['supervisor']                   },
 ];
 
@@ -21,7 +21,6 @@ export default function PinturaNavbar() {
   const navigate = useNavigate();
   const [abierto, setAbierto] = useState(false);
 
-  const { tema, toggleTema } = useTheme();
   const rol = localStorage.getItem('rol');
   const links = NAV_LINKS.filter((l) => l.roles.includes(rol));
 
@@ -74,15 +73,8 @@ export default function PinturaNavbar() {
           })}
         </nav>
 
-        {/* Modo noche + Logout */}
-        <div className="p-3 border-top d-flex flex-column gap-2">
-          <button
-            className="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2"
-            onClick={toggleTema}
-          >
-            <i className={`bi bi-${tema === 'dark' ? 'sun' : 'moon-stars'}`}></i>
-            <span>{tema === 'dark' ? 'Modo claro' : 'Modo noche'}</span>
-          </button>
+        {/* Logout */}
+        <div className="p-3 border-top">
           <button
             className="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2"
             onClick={handleLogout}
@@ -130,14 +122,7 @@ export default function PinturaNavbar() {
                 </Link>
               );
             })}
-            <div className="border-top pt-2 mt-1 d-flex flex-column gap-2">
-              <button
-                className="btn btn-outline-secondary btn-sm w-100 d-flex align-items-center justify-content-center gap-2"
-                onClick={toggleTema}
-              >
-                <i className={`bi bi-${tema === 'dark' ? 'sun' : 'moon-stars'}`}></i>
-                <span>{tema === 'dark' ? 'Modo claro' : 'Modo noche'}</span>
-              </button>
+            <div className="border-top pt-2 mt-1">
               <button
                 className="btn btn-outline-danger btn-sm w-100 d-flex align-items-center justify-content-center gap-2"
                 onClick={handleLogout}

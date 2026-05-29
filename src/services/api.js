@@ -227,6 +227,61 @@ export const eliminarMaterialCatalogo = async (id) => {
   return handleResponse(response);
 };
 
+// ============= CLIENTES =============
+
+export const obtenerClientes = async () => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/clientes`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return handleResponse(response);
+};
+
+export const crearCliente = async (datos) => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/clientes`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(datos),
+  });
+  return handleResponse(response);
+};
+
+export const actualizarCliente = async (id, datos) => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/clientes/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(datos),
+  });
+  return handleResponse(response);
+};
+
+export const obtenerTodosClientes = async () => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/clientes/todos`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return handleResponse(response);
+};
+
+export const toggleCliente = async (id) => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/clientes/${id}/toggle`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return handleResponse(response);
+};
+
+export const obtenerConsumoMateriales = async () => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/turnos/consumo`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return handleResponse(response);
+};
+
 // ============= TIPOS DE TAREA =============
 
 export const obtenerTiposTarea = async (todos = false) => {
