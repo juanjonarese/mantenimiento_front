@@ -10,10 +10,11 @@ export default function ListaPage() {
   const [filtroEstado, setFiltroEstado] = useState('');
   const [filtroCertif, setFiltroCertif] = useState('');
   const [sincronizando, setSincronizando] = useState(false);
+  const [cargando, setCargando] = useState(true);
   const [mostrarImportar, setMostrarImportar] = useState(false);
 
   const cargar = async () => {
-    // Intentar bajar datos del backend al IndexedDB local antes de leer
+    setCargando(true);
     if (navigator.onLine) {
       setSincronizando(true);
       try {
@@ -26,6 +27,7 @@ export default function ListaPage() {
       }
     }
     setTrabajos(await obtenerTrabajos());
+    setCargando(false);
   };
 
   useEffect(() => { cargar(); }, []);
@@ -105,7 +107,12 @@ export default function ListaPage() {
       </div>
 
       <div className="container py-3" style={{ maxWidth: 1400 }}>
-        {filtrados.length === 0 ? (
+        {cargando ? (
+          <div className="text-center text-muted py-5">
+            <div className="spinner-border text-primary mb-3" style={{ width: 40, height: 40 }}></div>
+            <p>Cargando trabajos...</p>
+          </div>
+        ) : filtrados.length === 0 ? (
           <div className="text-center text-muted py-5">
             <i className="bi bi-inbox display-4"></i>
             <p className="mt-2">No hay trabajos cargados</p>
@@ -129,13 +136,13 @@ export default function ListaPage() {
                         </div>
                         <div className="d-flex gap-2 flex-wrap mb-1" style={{ fontSize: 12 }}>
                           {getSup(t, 'SENDAS') > 0 && (
-                            <span className="text-muted">Sendas <strong>{getSup(t, 'SENDAS')}</strong> m²</span>
+                            <span className="text-muted">Sendas <strong>{getSup(t, 'SENDAS').toFixed(1)}</strong> m²</span>
                           )}
                           {getSup(t, 'RAMPAS') > 0 && (
-                            <span className="text-muted">Rampas <strong>{getSup(t, 'RAMPAS')}</strong> m²</span>
+                            <span className="text-muted">Rampas <strong>{getSup(t, 'RAMPAS').toFixed(1)}</strong> m²</span>
                           )}
                           {getSup(t, 'CORDONES') > 0 && (
-                            <span className="text-muted">Cordones <strong>{getSup(t, 'CORDONES')}</strong> m²</span>
+                            <span className="text-muted">Cordones <strong>{getSup(t, 'CORDONES').toFixed(1)}</strong> m²</span>
                           )}
                         </div>
                         <div className="d-flex gap-1 flex-wrap">
@@ -197,9 +204,9 @@ export default function ListaPage() {
                             })}
                           </td>
                           <td className="fw-semibold">{t.calle1} y {t.calle2}</td>
-                          <td className="text-end">{getSup(t, 'SENDAS') || '—'}</td>
-                          <td className="text-end">{getSup(t, 'RAMPAS') || '—'}</td>
-                          <td className="text-end">{getSup(t, 'CORDONES') || '—'}</td>
+                          <td className="text-end">{getSup(t, 'SENDAS') > 0 ? getSup(t, 'SENDAS').toFixed(1) : '—'}</td>
+                          <td className="text-end">{getSup(t, 'RAMPAS') > 0 ? getSup(t, 'RAMPAS').toFixed(1) : '—'}</td>
+                          <td className="text-end">{getSup(t, 'CORDONES') > 0 ? getSup(t, 'CORDONES').toFixed(1) : '—'}</td>
                           <td>
                             <span className={`badge bg-${COLORES_ESTADO_OP[t.estadoOperativo]}`}>
                               {t.estadoOperativo}
