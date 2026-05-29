@@ -138,17 +138,21 @@ export default function TurnoPage() {
       </div>
 
       {/* Acciones */}
-      <div className="d-flex flex-column gap-3 mb-4">
-        <button className="btn btn-primary btn-lg w-100 py-3" onClick={() => navigate("/nuevo")}>
-          <i className="bi bi-plus-circle me-2 fs-5"></i>Nuevo trabajo
-        </button>
-        <button className="btn btn-outline-danger btn-lg w-100 py-3" onClick={() => navigate("/cerrar-turno")}>
-          <i className="bi bi-door-closed me-2 fs-5"></i>Cerrar turno
-        </button>
+      <div className="row g-2 mb-4">
+        <div className="col-12 col-sm-6">
+          <button className="btn btn-primary btn-lg w-100 py-3" onClick={() => navigate("/nuevo")}>
+            <i className="bi bi-plus-circle me-2 fs-5"></i>Nuevo trabajo
+          </button>
+        </div>
+        <div className="col-12 col-sm-6">
+          <button className="btn btn-outline-danger btn-lg w-100 py-3" onClick={() => navigate("/cerrar-turno")}>
+            <i className="bi bi-door-closed me-2 fs-5"></i>Cerrar turno
+          </button>
+        </div>
       </div>
 
       {/* Trabajos del turno */}
-      <div className="mb-2 d-flex align-items-center justify-content-between">
+      <div className="mb-3 d-flex align-items-center justify-content-between">
         <span className="fw-semibold">
           <i className="bi bi-tools me-1 text-primary"></i>Trabajos del turno
           {trabajos.length > 0 && (
@@ -161,55 +165,61 @@ export default function TurnoPage() {
       </div>
 
       {trabajos.length === 0 ? (
-        <div className="card border-dashed text-center py-4 text-muted small">
+        <div className="card text-center py-4 text-muted small">
           <i className="bi bi-clipboard fs-3 mb-2 d-block opacity-50"></i>
           Todavía no cargaste trabajos en este turno
         </div>
       ) : (
-        <div className="d-flex flex-column gap-2">
+        <div className="row g-2">
           {trabajos.map((t) => {
-            const sup = (t.items || []).reduce((s, i) => s + (i.superficie || 0), 0).toFixed(2);
             const color = COLORES_OP[t.estadoOperativo] || 'secondary';
+            const getSup = (tipo) =>
+              (t.items || []).find((i) => i.tipoTrabajo === tipo)?.superficie || 0;
             return (
-              <div key={t.id} className="card border-start border-3 border-primary shadow-sm">
-                <div className="card-body py-2 px-3">
-                  <div className="d-flex justify-content-between align-items-start gap-2">
-                    <div className="min-w-0">
-                      <div className="fw-semibold text-truncate">
-                        <i className="bi bi-geo-alt me-1 text-primary"></i>
-                        {t.calle1} y {t.calle2}
-                      </div>
-                      {t.clienteNombre && (
-                        <div className="text-muted small mt-1">
-                          <i className="bi bi-person-vcard me-1"></i>{t.clienteNombre}
-                        </div>
+              <div key={t.id} className="col-12 col-md-6 col-xl-4">
+                <div className="card h-100 border-start border-3 border-primary shadow-sm">
+                  <div className="card-body py-2 px-3">
+
+                    {/* Intersección */}
+                    <div className="fw-semibold mb-1">
+                      <i className="bi bi-geo-alt me-1 text-primary"></i>
+                      {t.calle1} y {t.calle2}
+                    </div>
+
+                    {/* Superficies por tipo */}
+                    <div className="d-flex gap-3 flex-wrap mb-2" style={{ fontSize: 12 }}>
+                      {getSup('SENDAS') > 0 && (
+                        <span className="text-muted">Sendas <strong>{getSup('SENDAS').toFixed(1)}</strong> m²</span>
                       )}
-                      <div className="d-flex align-items-center gap-2 mt-1 flex-wrap">
-                        <span className={`badge bg-${color} text-${color === 'warning' ? 'dark' : 'white'}`} style={{ fontSize: 11 }}>
-                          {t.estadoOperativo}
-                        </span>
-                        <span className="badge bg-primary bg-opacity-75" style={{ fontSize: 11 }}>{sup} m²</span>
-                        {(t.items || []).length > 0 && (
-                          <span className="text-muted" style={{ fontSize: 11 }}>
-                            {(t.items || []).map(i => i.tipoTrabajo).join(' · ')}
-                          </span>
-                        )}
+                      {getSup('RAMPAS') > 0 && (
+                        <span className="text-muted">Rampas <strong>{getSup('RAMPAS').toFixed(1)}</strong> m²</span>
+                      )}
+                      {getSup('CORDONES') > 0 && (
+                        <span className="text-muted">Cordones <strong>{getSup('CORDONES').toFixed(1)}</strong> m²</span>
+                      )}
+                    </div>
+
+                    {/* Badge estado + acciones */}
+                    <div className="d-flex align-items-center justify-content-between gap-2">
+                      <span className={`badge bg-${color} text-${color === 'warning' ? 'dark' : 'white'}`}>
+                        {t.estadoOperativo}
+                      </span>
+                      <div className="d-flex gap-1">
+                        <button
+                          className="btn btn-sm btn-outline-secondary"
+                          onClick={() => navigate(`/editar/${t.id}`)}
+                        >
+                          <i className="bi bi-pencil"></i>
+                        </button>
+                        <button
+                          className="btn btn-sm btn-outline-danger"
+                          onClick={() => handleEliminar(t)}
+                        >
+                          <i className="bi bi-trash"></i>
+                        </button>
                       </div>
                     </div>
-                    <div className="d-flex gap-2 flex-shrink-0">
-                      <button
-                        className="btn btn-sm btn-outline-warning py-1 px-2"
-                        onClick={() => navigate(`/editar/${t.id}`)}
-                      >
-                        <i className="bi bi-pencil"></i>
-                      </button>
-                      <button
-                        className="btn btn-sm btn-outline-danger py-1 px-2"
-                        onClick={() => handleEliminar(t)}
-                      >
-                        <i className="bi bi-trash"></i>
-                      </button>
-                    </div>
+
                   </div>
                 </div>
               </div>
