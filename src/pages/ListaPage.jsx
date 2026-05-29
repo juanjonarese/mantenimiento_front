@@ -54,11 +54,21 @@ export default function ListaPage() {
     cargar();
   }
 
+  const [pagina, setPagina] = useState(1);
+  const POR_PAGINA = 30;
+
   const filtrados = trabajos.filter((t) => {
     const coincideEstado = !filtroEstado || t.estadoOperativo === filtroEstado;
     const coincideCertif = !filtroCertif || t.estadoAdmin === filtroCertif;
     return coincideEstado && coincideCertif;
   });
+
+  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / POR_PAGINA));
+  const paginaActual = Math.min(pagina, totalPaginas);
+  const paginados = filtrados.slice((paginaActual - 1) * POR_PAGINA, paginaActual * POR_PAGINA);
+
+  // Resetear a página 1 cuando cambian los filtros
+  useEffect(() => { setPagina(1); }, [filtroEstado, filtroCertif]);
 
   // Extrae la superficie de un tipo específico, soporta formato items[] y legacy
   const getSup = (t, tipo) => {
@@ -138,7 +148,7 @@ export default function ListaPage() {
           <>
             {/* ── MOBILE: cards (oculto en md+) ── */}
             <div className="d-flex flex-column gap-2 d-md-none">
-              {filtrados.map((t) => (
+              {paginados.map((t) => (
                 <div key={t.id} className="card">
                   <div className="card-body py-2 px-3">
                     <div className="d-flex justify-content-between align-items-start">
@@ -211,7 +221,7 @@ export default function ListaPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filtrados.map((t) => (
+                      {paginados.map((t) => (
                         <tr key={t.id}>
                           <td className="small text-nowrap text-muted">
                             {new Date(t.fechaCarga).toLocaleString('es-AR', {
@@ -277,6 +287,43 @@ export default function ListaPage() {
                 </div>
               </div>
             </div>
+
+            {/* ── PAGINADOR ── */}
+            {totalPaginas > 1 && (
+              <div className="d-flex align-items-center justify-content-between mt-3 px-1 flex-wrap gap-2">
+                <span className="small text-muted">
+                  Mostrando {(paginaActual - 1) * POR_PAGINA + 1}–{Math.min(paginaActual * POR_PAGINA, filtrados.length)} de {filtrados.length}
+                </span>
+                <nav>
+                  <ul className="pagination pagination-sm mb-0">
+                    <li className={`page-item ${paginaActual === 1 ? 'disabled' : ''}`}>
+                      <button className="page-link" onClick={() => setPagina(p => p - 1)}>
+                        <i className="bi bi-chevron-left"></i>
+                      </button>
+                    </li>
+                    {Array.from({ length: totalPaginas }, (_, i) => i + 1)
+                      .filter(n => n === 1 || n === totalPaginas || Math.abs(n - paginaActual) <= 1)
+                      .reduce((acc, n, idx, arr) => {
+                        if (idx > 0 && n - arr[idx - 1] > 1) acc.push('…');
+                        acc.push(n);
+                        return acc;
+                      }, [])
+                      .map((n, i) =>
+                        n === '…'
+                          ? <li key={`ellipsis-${i}`} className="page-item disabled"><span className="page-link">…</span></li>
+                          : <li key={n} className={`page-item ${n === paginaActual ? 'active' : ''}`}>
+                              <button className="page-link" onClick={() => setPagina(n)}>{n}</button>
+                            </li>
+                      )}
+                    <li className={`page-item ${paginaActual === totalPaginas ? 'disabled' : ''}`}>
+                      <button className="page-link" onClick={() => setPagina(p => p + 1)}>
+                        <i className="bi bi-chevron-right"></i>
+                      </button>
+                    </li>
+                  </ul>
+                </nav>
+              </div>
+            )}
           </>
         )}
       </div>
