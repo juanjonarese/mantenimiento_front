@@ -15,22 +15,22 @@ function formatFecha(fecha) {
 }
 
 function calcularHoras(fechaInicio) {
-  if (!fechaInicio) return "—";
+  if (!fechaInicio) return null;
   return ((Date.now() - new Date(fechaInicio)) / 3600000).toFixed(1);
 }
 
 const COLOR_ESTADO = {
-  'Sin iniciar': { bg: '#6c757d', text: '#fff' },
-  'En proceso':  { bg: '#ffc107', text: '#212529' },
-  'Terminado':   { bg: '#198754', text: '#fff' },
-  'Finalizado':  { bg: '#198754', text: '#fff' },
+  "Sin iniciar": { bg: "#6c757d", text: "#fff" },
+  "En proceso":  { bg: "#ffc107", text: "#212529" },
+  "Terminado":   { bg: "#198754", text: "#fff" },
+  "Finalizado":  { bg: "#198754", text: "#fff" },
 };
 
 const BORDER_ESTADO = {
-  'Sin iniciar': '#adb5bd',
-  'En proceso':  '#ffc107',
-  'Terminado':   '#198754',
-  'Finalizado':  '#198754',
+  "Sin iniciar": "#adb5bd",
+  "En proceso":  "#ffc107",
+  "Terminado":   "#198754",
+  "Finalizado":  "#198754",
 };
 
 export default function TurnoPage() {
@@ -104,158 +104,160 @@ export default function TurnoPage() {
     );
   }
 
+  const hs = calcularHoras(turno?.fechaInicio);
   const supTotal = trabajos
     .reduce((s, t) => s + (t.items || []).reduce((si, i) => si + (i.superficie || 0), 0), 0)
     .toFixed(1);
 
   return (
-    <div className="px-3 py-4 pb-5" style={{ maxWidth: 1100, margin: "0 auto" }}>
+    <div className="turno-page">
 
-      {error && (
-        <div className="alert alert-warning py-2 small mb-3 d-flex align-items-center gap-2">
-          <i className="bi bi-wifi-off flex-shrink-0"></i>{error}
-        </div>
-      )}
-
-      {/* ── Header compacto ── */}
-      <div className="d-flex align-items-start justify-content-between mb-4">
-        <div>
-          <div className="d-flex align-items-center gap-2 mb-1">
-            <span
-              className="rounded-circle d-inline-block"
-              style={{ width: 8, height: 8, background: "#198754", marginTop: 1, flexShrink: 0 }}
-            />
-            <span className="fw-bold fs-6">Turno activo</span>
+      {/* ── HEADER ── */}
+      <div className="page-header bg-white border-bottom px-3 px-lg-4 py-3">
+        <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <div>
+            <h4 className="fw-bold mb-0 d-flex align-items-center gap-2">
+              <span
+                className="rounded-circle flex-shrink-0"
+                style={{ width: 10, height: 10, background: "#198754", display: "inline-block" }}
+              />
+              Turno activo
+            </h4>
+            <small className="text-muted">
+              {nombre && <span className="me-1">{nombre} ·</span>}
+              {formatFecha(turno?.fechaInicio)} · desde {formatHora(turno?.fechaInicio)}
+              {hs && <span className="ms-2 text-success fw-semibold">{hs} hs</span>}
+            </small>
           </div>
-          {nombre && (
-            <div className="text-muted small">{nombre}</div>
-          )}
-          <div className="text-muted small">
-            {formatFecha(turno?.fechaInicio)} · desde {formatHora(turno?.fechaInicio)}
-            {turno?.fechaInicio && (
-              <span className="ms-2 text-success fw-semibold">{calcularHoras(turno.fechaInicio)} hs</span>
-            )}
+          <div className="d-flex gap-2">
+            <button
+              className="btn btn-primary d-flex align-items-center gap-2"
+              onClick={() => navigate("/nuevo")}
+            >
+              <i className="bi bi-plus-lg"></i>
+              <span>Nuevo trabajo</span>
+            </button>
+            <button
+              className="btn btn-outline-danger d-flex align-items-center gap-2"
+              onClick={() => navigate("/cerrar-turno")}
+            >
+              <i className="bi bi-door-closed"></i>
+              <span className="d-none d-sm-inline">Cerrar turno</span>
+            </button>
           </div>
         </div>
-        <button
-          className="btn btn-sm btn-outline-danger flex-shrink-0 ms-3"
-          onClick={() => navigate("/cerrar-turno")}
-        >
-          <i className="bi bi-door-closed me-1"></i>Cerrar turno
-        </button>
-      </div>
 
-      {/* ── CTA principal ── */}
-      <button
-        className="btn btn-primary w-100 mb-4 py-2 fw-semibold"
-        onClick={() => navigate("/nuevo")}
-      >
-        <i className="bi bi-plus-lg me-2"></i>Registrar nuevo trabajo
-      </button>
-
-      {/* ── Lista de trabajos ── */}
-      <div className="d-flex align-items-center justify-content-between mb-2">
-        <span className="text-uppercase text-muted fw-semibold" style={{ fontSize: 11, letterSpacing: "0.06em" }}>
-          Trabajos del turno
-          {trabajos.length > 0 && (
-            <span className="ms-2 badge rounded-pill bg-primary" style={{ fontSize: 10 }}>{trabajos.length}</span>
-          )}
-        </span>
-        {trabajos.length > 0 && (
-          <span className="text-muted small">{supTotal} m²</span>
+        {error && (
+          <div className="alert alert-warning py-1 small mb-0 mt-2 d-flex align-items-center gap-2">
+            <i className="bi bi-wifi-off flex-shrink-0"></i>{error}
+          </div>
         )}
       </div>
 
-      {trabajos.length === 0 ? (
-        <div className="text-center py-5 text-muted">
-          <i className="bi bi-clipboard" style={{ fontSize: 40, opacity: 0.2 }}></i>
-          <p className="small mt-3 mb-0">Todavía no hay trabajos en este turno</p>
-        </div>
-      ) : (
-        <div className="d-flex flex-column gap-2">
-          {trabajos.map((t) => {
-            const estado = t.estadoOperativo || "Sin iniciar";
-            const colores = COLOR_ESTADO[estado] || COLOR_ESTADO["Sin iniciar"];
-            const borderColor = BORDER_ESTADO[estado] || "#adb5bd";
-            const getSup = (tipo) =>
-              (t.items || []).find((i) => i.tipoTrabajo === tipo)?.superficie || 0;
+      {/* ── CONTENIDO ── */}
+      <div className="container-fluid px-3 py-3" style={{ maxWidth: 1400 }}>
 
-            const acciones = (
-              <div className="d-flex gap-1 flex-shrink-0">
-                <button
-                  className="btn btn-sm btn-outline-secondary"
-                  style={{ padding: "3px 10px" }}
-                  onClick={() => navigate(`/editar/${t.id}`)}
-                >
-                  <i className="bi bi-pencil" style={{ fontSize: 12 }}></i>
-                </button>
-                <button
-                  className="btn btn-sm btn-outline-danger"
-                  style={{ padding: "3px 10px" }}
-                  onClick={() => handleEliminar(t)}
-                >
-                  <i className="bi bi-trash" style={{ fontSize: 12 }}></i>
-                </button>
-              </div>
-            );
+        {/* Resumen */}
+        {trabajos.length > 0 && (
+          <div className="d-flex align-items-center justify-content-between mb-3">
+            <span className="text-muted small fw-semibold">
+              {trabajos.length} trabajo{trabajos.length !== 1 ? "s" : ""} en este turno
+            </span>
+            <span className="text-muted small">{supTotal} m² total</span>
+          </div>
+        )}
 
-            const superficies = (
-              <div className="d-flex gap-3 flex-wrap" style={{ fontSize: 12, color: "#6c757d" }}>
-                {getSup("SENDAS") > 0 && (
-                  <span>Sendas <strong style={{ color: "#212529" }}>{getSup("SENDAS").toFixed(1)}</strong> m²</span>
-                )}
-                {getSup("RAMPAS") > 0 && (
-                  <span>Rampas <strong style={{ color: "#212529" }}>{getSup("RAMPAS").toFixed(1)}</strong> m²</span>
-                )}
-                {getSup("CORDONES") > 0 && (
-                  <span>Cordones <strong style={{ color: "#212529" }}>{getSup("CORDONES").toFixed(1)}</strong> m²</span>
-                )}
-              </div>
-            );
+        {/* Cards */}
+        {trabajos.length === 0 ? (
+          <div className="text-center text-muted py-5">
+            <i className="bi bi-clipboard display-4" style={{ opacity: 0.2 }}></i>
+            <p className="mt-3 small">Todavía no hay trabajos en este turno</p>
+          </div>
+        ) : (
+          <div className="row g-2">
+            {trabajos.map((t) => {
+              const estado = t.estadoOperativo || "Sin iniciar";
+              const colores = COLOR_ESTADO[estado] || COLOR_ESTADO["Sin iniciar"];
+              const borderColor = BORDER_ESTADO[estado] || "#adb5bd";
+              const getSup = (tipo) =>
+                (t.items || []).find((i) => i.tipoTrabajo === tipo)?.superficie || 0;
 
-            const badgeEstado = (
-              <span
-                className="badge flex-shrink-0"
-                style={{ background: colores.bg, color: colores.text, fontSize: 11 }}
-              >
-                {estado}
-              </span>
-            );
-
-            return (
-              <div
-                key={t.id}
-                className="card shadow-sm"
-                style={{ borderLeft: `3px solid ${borderColor}` }}
-              >
-                <div className="card-body py-2 px-3">
-
-                  {/* ── MOBILE: stacked ── */}
-                  <div className="d-md-none">
-                    <div className="d-flex justify-content-between align-items-start gap-2 mb-1">
-                      <div className="fw-semibold" style={{ fontSize: 15 }}>{t.calle1} y {t.calle2}</div>
-                      {acciones}
-                    </div>
-                    <div className="mb-1">{superficies}</div>
-                    {badgeEstado}
-                  </div>
-
-                  {/* ── DESKTOP: fila horizontal ── */}
-                  <div className="d-none d-md-flex align-items-center gap-3">
-                    <div className="fw-semibold" style={{ minWidth: 200, flex: "1 1 200px" }}>
-                      {t.calle1} y {t.calle2}
-                    </div>
-                    <div style={{ flex: "2 1 240px" }}>{superficies}</div>
-                    {badgeEstado}
-                    {acciones}
-                  </div>
-
+              const acciones = (
+                <div className="d-flex gap-1 flex-shrink-0">
+                  <button
+                    className="btn btn-sm btn-outline-secondary"
+                    onClick={() => navigate(`/editar/${t.id}`)}
+                  >
+                    <i className="bi bi-pencil" style={{ fontSize: 12 }}></i>
+                  </button>
+                  <button
+                    className="btn btn-sm btn-outline-danger"
+                    onClick={() => handleEliminar(t)}
+                  >
+                    <i className="bi bi-trash" style={{ fontSize: 12 }}></i>
+                  </button>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+
+              const superficies = (
+                <div className="d-flex gap-3 flex-wrap" style={{ fontSize: 12, color: "#6c757d" }}>
+                  {getSup("SENDAS") > 0 && (
+                    <span>Sendas <strong style={{ color: "#212529" }}>{getSup("SENDAS").toFixed(1)}</strong> m²</span>
+                  )}
+                  {getSup("RAMPAS") > 0 && (
+                    <span>Rampas <strong style={{ color: "#212529" }}>{getSup("RAMPAS").toFixed(1)}</strong> m²</span>
+                  )}
+                  {getSup("CORDONES") > 0 && (
+                    <span>Cordones <strong style={{ color: "#212529" }}>{getSup("CORDONES").toFixed(1)}</strong> m²</span>
+                  )}
+                </div>
+              );
+
+              const badgeEstado = (
+                <span
+                  className="badge flex-shrink-0"
+                  style={{ background: colores.bg, color: colores.text, fontSize: 11 }}
+                >
+                  {estado}
+                </span>
+              );
+
+              return (
+                <div key={t.id} className="col-12 col-md-6">
+                  <div
+                    className="card h-100 shadow-sm"
+                    style={{ borderLeft: `3px solid ${borderColor}` }}
+                  >
+                    <div className="card-body py-2 px-3">
+
+                      {/* MOBILE: stacked */}
+                      <div className="d-md-none">
+                        <div className="d-flex justify-content-between align-items-start gap-2 mb-1">
+                          <div className="fw-semibold">{t.calle1} y {t.calle2}</div>
+                          {acciones}
+                        </div>
+                        <div className="mb-1">{superficies}</div>
+                        {badgeEstado}
+                      </div>
+
+                      {/* DESKTOP: fila horizontal */}
+                      <div className="d-none d-md-flex align-items-center gap-3">
+                        <div className="fw-semibold" style={{ flex: "1 1 180px" }}>
+                          {t.calle1} y {t.calle2}
+                        </div>
+                        <div style={{ flex: "2 1 200px" }}>{superficies}</div>
+                        {badgeEstado}
+                        {acciones}
+                      </div>
+
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

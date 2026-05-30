@@ -88,7 +88,7 @@ function App() {
 
         {/* Supervisor */}
         <Route path="/turno" element={
-          <ProtectedRoute roles={['supervisor']}><Layout>
+          <ProtectedRoute roles={['supervisor']}><Layout fullWidth>
             <Suspense fallback={<Spinner />}><TurnoPage /></Suspense>
           </Layout></ProtectedRoute>
         } />
