@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import Swal from 'sweetalert2';
 import { obtenerTrabajoPorId, eliminarTrabajo } from '../db/db';
 import { COLORES_ESTADO_OP, COLORES_ESTADO_ADMIN } from '../constants';
 
 export default function DetallePage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const esAdmin = localStorage.getItem('rol') === 'admin';
   const [trabajo, setTrabajo] = useState(null);
   const [fotoAmpliada, setFotoAmpliada] = useState(null);
 
@@ -17,7 +19,17 @@ export default function DetallePage() {
   }, [id]);
 
   async function handleEliminar() {
-    if (!confirm('¿Eliminar este trabajo?')) return;
+    const { isConfirmed } = await Swal.fire({
+      title: '¿Eliminar este trabajo?',
+      text: 'Esta acción no se puede deshacer.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+    });
+    if (!isConfirmed) return;
     await eliminarTrabajo(trabajo.id);
     navigate('/lista');
   }
@@ -35,9 +47,11 @@ export default function DetallePage() {
           <i className="bi bi-arrow-left"></i>
         </button>
         <h5 className="fw-bold mb-0 flex-grow-1">Detalle del trabajo</h5>
-        <Link to={`/editar/${trabajo.id}`} className="btn btn-sm btn-outline-primary">
-          <i className="bi bi-pencil me-1"></i>Editar
-        </Link>
+        {esAdmin && (
+          <Link to={`/editar/${trabajo.id}`} className="btn btn-sm btn-outline-primary">
+            <i className="bi bi-pencil me-1"></i>Editar
+          </Link>
+        )}
       </div>
 
       <div className="d-flex gap-2 mb-3 flex-wrap">
@@ -222,9 +236,11 @@ export default function DetallePage() {
         </div>
       )}
 
-      <button className="btn btn-outline-danger w-100" onClick={handleEliminar}>
-        <i className="bi bi-trash me-2"></i>Eliminar trabajo
-      </button>
+      {esAdmin && (
+        <button className="btn btn-outline-danger w-100" onClick={handleEliminar}>
+          <i className="bi bi-trash me-2"></i>Eliminar trabajo
+        </button>
+      )}
 
       {fotoAmpliada && (
         <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
