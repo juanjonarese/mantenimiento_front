@@ -109,7 +109,7 @@ export default function TurnoPage() {
     .toFixed(1);
 
   return (
-    <div style={{ maxWidth: 680, margin: "0 auto" }} className="px-3 py-4 pb-5">
+    <div className="px-3 py-4 pb-5" style={{ maxWidth: 1100, margin: "0 auto" }}>
 
       {error && (
         <div className="alert alert-warning py-2 small mb-3 d-flex align-items-center gap-2">
@@ -180,6 +180,48 @@ export default function TurnoPage() {
             const getSup = (tipo) =>
               (t.items || []).find((i) => i.tipoTrabajo === tipo)?.superficie || 0;
 
+            const acciones = (
+              <div className="d-flex gap-1 flex-shrink-0">
+                <button
+                  className="btn btn-sm btn-outline-secondary"
+                  style={{ padding: "3px 10px" }}
+                  onClick={() => navigate(`/editar/${t.id}`)}
+                >
+                  <i className="bi bi-pencil" style={{ fontSize: 12 }}></i>
+                </button>
+                <button
+                  className="btn btn-sm btn-outline-danger"
+                  style={{ padding: "3px 10px" }}
+                  onClick={() => handleEliminar(t)}
+                >
+                  <i className="bi bi-trash" style={{ fontSize: 12 }}></i>
+                </button>
+              </div>
+            );
+
+            const superficies = (
+              <div className="d-flex gap-3 flex-wrap" style={{ fontSize: 12, color: "#6c757d" }}>
+                {getSup("SENDAS") > 0 && (
+                  <span>Sendas <strong style={{ color: "#212529" }}>{getSup("SENDAS").toFixed(1)}</strong> m²</span>
+                )}
+                {getSup("RAMPAS") > 0 && (
+                  <span>Rampas <strong style={{ color: "#212529" }}>{getSup("RAMPAS").toFixed(1)}</strong> m²</span>
+                )}
+                {getSup("CORDONES") > 0 && (
+                  <span>Cordones <strong style={{ color: "#212529" }}>{getSup("CORDONES").toFixed(1)}</strong> m²</span>
+                )}
+              </div>
+            );
+
+            const badgeEstado = (
+              <span
+                className="badge flex-shrink-0"
+                style={{ background: colores.bg, color: colores.text, fontSize: 11 }}
+              >
+                {estado}
+              </span>
+            );
+
             return (
               <div
                 key={t.id}
@@ -188,49 +230,25 @@ export default function TurnoPage() {
               >
                 <div className="card-body py-2 px-3">
 
-                  {/* Fila 1: intersección + botones */}
-                  <div className="d-flex align-items-start justify-content-between gap-2 mb-1">
-                    <div className="fw-semibold lh-sm" style={{ fontSize: 15 }}>
+                  {/* ── MOBILE: stacked ── */}
+                  <div className="d-md-none">
+                    <div className="d-flex justify-content-between align-items-start gap-2 mb-1">
+                      <div className="fw-semibold" style={{ fontSize: 15 }}>{t.calle1} y {t.calle2}</div>
+                      {acciones}
+                    </div>
+                    <div className="mb-1">{superficies}</div>
+                    {badgeEstado}
+                  </div>
+
+                  {/* ── DESKTOP: fila horizontal ── */}
+                  <div className="d-none d-md-flex align-items-center gap-3">
+                    <div className="fw-semibold" style={{ minWidth: 200, flex: "1 1 200px" }}>
                       {t.calle1} y {t.calle2}
                     </div>
-                    <div className="d-flex gap-1 flex-shrink-0">
-                      <button
-                        className="btn btn-sm btn-outline-secondary"
-                        style={{ padding: "2px 8px" }}
-                        onClick={() => navigate(`/editar/${t.id}`)}
-                      >
-                        <i className="bi bi-pencil" style={{ fontSize: 12 }}></i>
-                      </button>
-                      <button
-                        className="btn btn-sm btn-outline-danger"
-                        style={{ padding: "2px 8px" }}
-                        onClick={() => handleEliminar(t)}
-                      >
-                        <i className="bi bi-trash" style={{ fontSize: 12 }}></i>
-                      </button>
-                    </div>
+                    <div style={{ flex: "2 1 240px" }}>{superficies}</div>
+                    {badgeEstado}
+                    {acciones}
                   </div>
-
-                  {/* Fila 2: superficies */}
-                  <div className="d-flex gap-3 flex-wrap mb-1" style={{ fontSize: 12, color: "#6c757d" }}>
-                    {getSup("SENDAS") > 0 && (
-                      <span>Sendas <strong style={{ color: "#212529" }}>{getSup("SENDAS").toFixed(1)}</strong> m²</span>
-                    )}
-                    {getSup("RAMPAS") > 0 && (
-                      <span>Rampas <strong style={{ color: "#212529" }}>{getSup("RAMPAS").toFixed(1)}</strong> m²</span>
-                    )}
-                    {getSup("CORDONES") > 0 && (
-                      <span>Cordones <strong style={{ color: "#212529" }}>{getSup("CORDONES").toFixed(1)}</strong> m²</span>
-                    )}
-                  </div>
-
-                  {/* Fila 3: badge estado */}
-                  <span
-                    className="badge"
-                    style={{ background: colores.bg, color: colores.text, fontSize: 11 }}
-                  >
-                    {estado}
-                  </span>
 
                 </div>
               </div>
