@@ -339,7 +339,7 @@ export default function CerrarTurnoPage() {
           </div>
         )}
 
-        <button type="submit" className="btn btn-danger btn-lg w-100 py-3" disabled={guardando}>
+        <button type="submit" className="btn btn-danger w-100" disabled={guardando}>
           {guardando
             ? <><span className="spinner-border spinner-border-sm me-2"></span>Cerrando turno...</>
             : <><i className="bi bi-check-circle me-2 fs-5"></i>Confirmar cierre de turno</>
