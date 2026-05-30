@@ -196,13 +196,16 @@ export default function NuevoTrabajoPage() {
     const comprimido = await comprimirMedia(archivo);
     if (navigator.onLine) {
       try {
-        const { url } = await subirFoto(comprimido.data, comprimido.nombre, comprimido.tipo);
+        const { url } = await subirFoto(
+          comprimido.data, comprimido.nombre, comprimido.tipo,
+          form.calle1 || '', form.calle2 || ''
+        );
         return { ...comprimido, driveUrl: url, subido: true };
-      } catch {
-        // Sin conexión o error → queda local
+      } catch (err) {
+        return { ...comprimido, subido: false, errorSubida: err.message };
       }
     }
-    return comprimido;
+    return { ...comprimido, subido: false };
   }
 
   async function handleFotosModal(e) {
@@ -651,10 +654,10 @@ export default function NuevoTrabajoPage() {
                           <i className="bi bi-camera-video text-secondary fs-4"></i>
                         </div>
                       )}
-                      <div className="position-absolute top-0 start-0 m-1">
+                      <div className="position-absolute top-0 start-0 m-1" title={f.errorSubida || ''}>
                         {f.subido
                           ? <i className="bi bi-cloud-check-fill text-success" style={{ fontSize: 12 }}></i>
-                          : <i className="bi bi-cloud-slash text-warning" style={{ fontSize: 12 }}></i>
+                          : <i className="bi bi-cloud-slash text-danger" style={{ fontSize: 12 }}></i>
                         }
                       </div>
                       {f.pesoFinalKB && (

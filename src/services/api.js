@@ -85,12 +85,12 @@ export const eliminarUsuario = async (id) => {
 
 // ============= TRABAJOS =============
 
-export const subirFoto = async (data, nombre, tipo) => {
+export const subirFoto = async (data, nombre, tipo, calle1 = '', calle2 = '') => {
   const token = localStorage.getItem("token");
   const response = await fetch(`${API_URL}/fotos/upload`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ data, nombre, tipo }),
+    body: JSON.stringify({ data, nombre, tipo, calle1, calle2 }),
   });
   return handleResponse(response);
 };
