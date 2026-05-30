@@ -205,7 +205,7 @@ export default function CerrarTurnoPage() {
   const matSeleccionado = catalogo.find((m) => String(m._id) === selId);
 
   return (
-    <div className="container-fluid p-3 pb-5">
+    <div className="p-3 pb-5">
 
       {esPendiente && (
         <div className="alert alert-warning d-flex align-items-start gap-2 mb-4">

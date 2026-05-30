@@ -93,6 +93,7 @@ body {
   background: #fff;
   min-height: calc(100vh - 56px);
   padding-bottom: env(safe-area-inset-bottom, 16px);
+  overflow-x: hidden;
 }
 
 @media (min-width: 768px) {
