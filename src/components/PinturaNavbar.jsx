@@ -74,9 +74,10 @@ export default function PinturaNavbar() {
         </nav>
 
         {/* Logout */}
-        <div className="p-3 border-top">
+        <div className="border-top" style={{ padding: '8px' }}>
           <button
             className="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2"
+            style={{ borderRadius: 8, fontSize: '0.9rem' }}
             onClick={handleLogout}
           >
             <i className="bi bi-box-arrow-right"></i>
