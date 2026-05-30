@@ -5,7 +5,7 @@ import Swal from 'sweetalert2';
 const NAV_LINKS = [
   { to: '/',               icon: 'bar-chart-line',  label: 'Panel',          roles: ['admin']                        },
   { to: '/turno',          icon: 'clock-history',   label: 'Turno activo',   roles: ['supervisor']                   },
-  { to: '/lista',          icon: 'list-ul',          label: 'Lista',          roles: ['admin']                          },
+  { to: '/lista',          icon: 'list-ul',          label: 'Lista',          roles: ['admin', 'supervisor']             },
   { to: '/mapa',           icon: 'map',              label: 'Mapa',           roles: ['admin']                        },
   { to: '/certificaciones',icon: 'patch-check',      label: 'Certificaciones',roles: ['admin']                        },
   { to: '/nuevo',          icon: 'plus-circle',      label: 'Nuevo trabajo',  roles: ['admin', 'supervisor']           },
