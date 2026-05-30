@@ -250,6 +250,10 @@ export default function NuevoTrabajoPage() {
     try {
       const nuevas = await Promise.all(archivos.map(procesarArchivo));
       setFotos((prev) => [...prev, ...nuevas]);
+      const fallidas = nuevas.filter(f => f.errorSubida);
+      if (fallidas.length) {
+        setErrorForm(`⚠ ${fallidas.length} foto(s) no se pudieron subir a Cloudinary: ${fallidas[0].errorSubida}`);
+      }
     } catch (err) {
       setErrorForm(err.message);
     } finally {
