@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import Swal from 'sweetalert2';
 import { useNavigate, useParams } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -250,9 +251,24 @@ export default function NuevoTrabajoPage() {
     try {
       const nuevas = await Promise.all(archivos.map(procesarArchivo));
       setFotos((prev) => [...prev, ...nuevas]);
+      const subidas = nuevas.filter(f => f.subido);
       const fallidas = nuevas.filter(f => f.errorSubida);
+      if (subidas.length) {
+        await Swal.fire({
+          icon: 'success',
+          title: `${subidas.length} foto(s) subidas`,
+          html: `<small>${subidas[0].driveUrl}</small>`,
+          timer: 4000,
+          showConfirmButton: false,
+        });
+      }
       if (fallidas.length) {
-        setErrorForm(`⚠ ${fallidas.length} foto(s) no se pudieron subir a Cloudinary: ${fallidas[0].errorSubida}`);
+        await Swal.fire({
+          icon: 'error',
+          title: 'Error al subir fotos',
+          text: fallidas[0].errorSubida || 'Error desconocido',
+        });
+        setErrorForm(`⚠ ${fallidas.length} foto(s) no se pudieron subir: ${fallidas[0].errorSubida}`);
       }
     } catch (err) {
       setErrorForm(err.message);
