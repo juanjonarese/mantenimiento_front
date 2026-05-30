@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { guardarTrabajo, obtenerTrabajoPorId } from '../db/db';
-import { obtenerClientes } from '../services/api';
+import { obtenerClientes, subirFoto } from '../services/api';
 import { useGPS } from '../hooks/useGPS';
 import { comprimirMedia } from '../utils/comprimirMedia';
 import { TIPOS_TRABAJO, ESTADOS_OPERATIVO, ESTADOS_ADMIN } from '../constants';
@@ -191,13 +191,27 @@ export default function NuevoTrabajoPage() {
     setModalForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }
 
+  // Comprime y sube a Cloudinary si hay conexión
+  async function procesarArchivo(archivo) {
+    const comprimido = await comprimirMedia(archivo);
+    if (navigator.onLine) {
+      try {
+        const { url } = await subirFoto(comprimido.data, comprimido.nombre, comprimido.tipo);
+        return { ...comprimido, driveUrl: url, subido: true };
+      } catch {
+        // Sin conexión o error → queda local
+      }
+    }
+    return comprimido;
+  }
+
   async function handleFotosModal(e) {
     const archivos = Array.from(e.target.files);
     if (!archivos.length) return;
     setComprimiendo(true);
     setErrorModal('');
     try {
-      const nuevas = await Promise.all(archivos.map(comprimirMedia));
+      const nuevas = await Promise.all(archivos.map(procesarArchivo));
       setModalForm((prev) => ({ ...prev, fotos: [...(prev.fotos || []), ...nuevas] }));
     } catch (err) {
       setErrorModal(err.message);
@@ -231,7 +245,7 @@ export default function NuevoTrabajoPage() {
     setComprimiendo(true);
     setErrorForm('');
     try {
-      const nuevas = await Promise.all(archivos.map(comprimirMedia));
+      const nuevas = await Promise.all(archivos.map(procesarArchivo));
       setFotos((prev) => [...prev, ...nuevas]);
     } catch (err) {
       setErrorForm(err.message);
@@ -626,17 +640,23 @@ export default function NuevoTrabajoPage() {
             )}
             {fotos.length > 0 && (
               <div>
-                <div className="small text-muted mb-1">Nuevos ({fotos.length}) — comprimidos:</div>
+                <div className="small text-muted mb-1">Nuevos ({fotos.length}):</div>
                 <div className="d-flex flex-wrap gap-2">
                   {fotos.map((f, i) => (
                     <div key={i} className="position-relative">
                       {f.tipo?.startsWith('image') ? (
-                        <img src={f.data} alt={f.nombre} style={{ width: 70, height: 70, objectFit: 'cover' }} className="rounded border" />
+                        <img src={f.driveUrl || f.data} alt={f.nombre} style={{ width: 70, height: 70, objectFit: 'cover' }} className="rounded border" />
                       ) : (
                         <div className="bg-light border rounded d-flex align-items-center justify-content-center" style={{ width: 70, height: 70 }}>
                           <i className="bi bi-camera-video text-secondary fs-4"></i>
                         </div>
                       )}
+                      <div className="position-absolute top-0 start-0 m-1">
+                        {f.subido
+                          ? <i className="bi bi-cloud-check-fill text-success" style={{ fontSize: 12 }}></i>
+                          : <i className="bi bi-cloud-slash text-warning" style={{ fontSize: 12 }}></i>
+                        }
+                      </div>
                       {f.pesoFinalKB && (
                         <div className="position-absolute bottom-0 start-0 end-0 text-center"
                           style={{ fontSize: 9, background: 'rgba(0,0,0,0.55)', color: '#fff', borderRadius: '0 0 4px 4px' }}>

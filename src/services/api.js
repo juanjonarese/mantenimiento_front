@@ -85,6 +85,16 @@ export const eliminarUsuario = async (id) => {
 
 // ============= TRABAJOS =============
 
+export const subirFoto = async (data, nombre, tipo) => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/fotos/upload`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ data, nombre, tipo }),
+  });
+  return handleResponse(response);
+};
+
 export const importarTrabajos = async (trabajos) => {
   const token = localStorage.getItem("token");
   const response = await fetch(`${API_URL}/trabajos/importar`, {
