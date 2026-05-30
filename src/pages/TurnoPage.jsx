@@ -16,15 +16,21 @@ function formatFecha(fecha) {
 
 function calcularHoras(fechaInicio) {
   if (!fechaInicio) return "—";
-  const diff = (Date.now() - new Date(fechaInicio)) / 3600000;
-  return diff.toFixed(1);
+  return ((Date.now() - new Date(fechaInicio)) / 3600000).toFixed(1);
 }
 
-const COLORES_OP = {
-  'Sin iniciar': 'secondary',
-  'En proceso': 'warning',
-  'Terminado': 'success',
-  'Finalizado': 'success',
+const COLOR_ESTADO = {
+  'Sin iniciar': { bg: '#6c757d', text: '#fff' },
+  'En proceso':  { bg: '#ffc107', text: '#212529' },
+  'Terminado':   { bg: '#198754', text: '#fff' },
+  'Finalizado':  { bg: '#198754', text: '#fff' },
+};
+
+const BORDER_ESTADO = {
+  'Sin iniciar': '#adb5bd',
+  'En proceso':  '#ffc107',
+  'Terminado':   '#198754',
+  'Finalizado':  '#198754',
 };
 
 export default function TurnoPage() {
@@ -36,15 +42,15 @@ export default function TurnoPage() {
   const nombre = localStorage.getItem("nombre") || "";
 
   const cargarTrabajos = useCallback(async () => {
-    const turnoId = localStorage.getItem('turnoId');
+    const turnoId = localStorage.getItem("turnoId");
     if (!turnoId) { setTrabajos([]); return; }
     const todos = await obtenerTrabajos();
     setTrabajos(todos.filter((t) => t.turnoId === turnoId));
   }, []);
 
   useEffect(() => {
-    window.addEventListener('focus', cargarTrabajos);
-    return () => window.removeEventListener('focus', cargarTrabajos);
+    window.addEventListener("focus", cargarTrabajos);
+    return () => window.removeEventListener("focus", cargarTrabajos);
   }, [cargarTrabajos]);
 
   useEffect(() => {
@@ -74,17 +80,16 @@ export default function TurnoPage() {
       .finally(() => setCargando(false));
   }, []);
 
-
   async function handleEliminar(t) {
     const { isConfirmed } = await Swal.fire({
-      title: '¿Eliminar trabajo?',
+      title: "¿Eliminar trabajo?",
       html: `<strong>${t.calle1} y ${t.calle2}</strong>`,
-      icon: 'warning',
+      icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: '#dc3545',
-      cancelButtonColor: '#6c757d',
-      confirmButtonText: 'Sí, eliminar',
-      cancelButtonText: 'Cancelar',
+      confirmButtonColor: "#dc3545",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
     });
     if (!isConfirmed) return;
     await eliminarTrabajo(t.id);
@@ -99,128 +104,134 @@ export default function TurnoPage() {
     );
   }
 
-  const supTotal = trabajos.reduce((s, t) =>
-    s + (t.items || []).reduce((si, i) => si + (i.superficie || 0), 0), 0
-  ).toFixed(2);
+  const supTotal = trabajos
+    .reduce((s, t) => s + (t.items || []).reduce((si, i) => si + (i.superficie || 0), 0), 0)
+    .toFixed(1);
 
   return (
-    <div className="container-fluid p-3 pb-5">
+    <div style={{ maxWidth: 680, margin: "0 auto" }} className="px-3 py-4 pb-5">
+
       {error && (
-        <div className="alert alert-warning py-2 small mb-3">
-          <i className="bi bi-wifi-off me-2"></i>{error}
+        <div className="alert alert-warning py-2 small mb-3 d-flex align-items-center gap-2">
+          <i className="bi bi-wifi-off flex-shrink-0"></i>{error}
         </div>
       )}
 
-      {/* Header */}
-      <div className="mb-4">
-        <h5 className="fw-bold mb-1">
-          <i className="bi bi-clock-history me-2 text-success"></i>Turno activo
-        </h5>
-        {nombre && <div className="text-muted small">Supervisor: {nombre}</div>}
-      </div>
-
-      {/* Tarjeta info turno */}
-      <div className="card border-success mb-4">
-        <div className="card-body">
-          <div className="row g-3 text-center">
-            <div className="col-6 border-end">
-              <div className="text-muted small mb-1">Inicio</div>
-              <div className="fw-bold fs-5">{formatHora(turno?.fechaInicio)}</div>
-              <div className="text-muted small">{formatFecha(turno?.fechaInicio)}</div>
-            </div>
-            <div className="col-6">
-              <div className="text-muted small mb-1">Tiempo activo</div>
-              <div className="fw-bold fs-5 text-success">{calcularHoras(turno?.fechaInicio)} hs</div>
-              <div className="text-muted small">en curso</div>
-            </div>
+      {/* ── Header compacto ── */}
+      <div className="d-flex align-items-start justify-content-between mb-4">
+        <div>
+          <div className="d-flex align-items-center gap-2 mb-1">
+            <span
+              className="rounded-circle d-inline-block"
+              style={{ width: 8, height: 8, background: "#198754", marginTop: 1, flexShrink: 0 }}
+            />
+            <span className="fw-bold fs-6">Turno activo</span>
+          </div>
+          {nombre && (
+            <div className="text-muted small">{nombre}</div>
+          )}
+          <div className="text-muted small">
+            {formatFecha(turno?.fechaInicio)} · desde {formatHora(turno?.fechaInicio)}
+            {turno?.fechaInicio && (
+              <span className="ms-2 text-success fw-semibold">{calcularHoras(turno.fechaInicio)} hs</span>
+            )}
           </div>
         </div>
+        <button
+          className="btn btn-sm btn-outline-danger flex-shrink-0 ms-3"
+          onClick={() => navigate("/cerrar-turno")}
+        >
+          <i className="bi bi-door-closed me-1"></i>Cerrar turno
+        </button>
       </div>
 
-      {/* Acciones */}
-      <div className="row g-2 mb-4">
-        <div className="col-12 col-sm-6">
-          <button className="btn btn-primary btn-lg w-100 py-3" onClick={() => navigate("/nuevo")}>
-            <i className="bi bi-plus-circle me-2 fs-5"></i>Nuevo trabajo
-          </button>
-        </div>
-        <div className="col-12 col-sm-6">
-          <button className="btn btn-outline-danger btn-lg w-100 py-3" onClick={() => navigate("/cerrar-turno")}>
-            <i className="bi bi-door-closed me-2 fs-5"></i>Cerrar turno
-          </button>
-        </div>
-      </div>
+      {/* ── CTA principal ── */}
+      <button
+        className="btn btn-primary w-100 mb-4 py-2 fw-semibold"
+        onClick={() => navigate("/nuevo")}
+      >
+        <i className="bi bi-plus-lg me-2"></i>Registrar nuevo trabajo
+      </button>
 
-      {/* Trabajos del turno */}
-      <div className="mb-3 d-flex align-items-center justify-content-between">
-        <span className="fw-semibold">
-          <i className="bi bi-tools me-1 text-primary"></i>Trabajos del turno
+      {/* ── Lista de trabajos ── */}
+      <div className="d-flex align-items-center justify-content-between mb-2">
+        <span className="text-uppercase text-muted fw-semibold" style={{ fontSize: 11, letterSpacing: "0.06em" }}>
+          Trabajos del turno
           {trabajos.length > 0 && (
-            <span className="ms-2 badge bg-primary">{trabajos.length}</span>
+            <span className="ms-2 badge rounded-pill bg-primary" style={{ fontSize: 10 }}>{trabajos.length}</span>
           )}
         </span>
         {trabajos.length > 0 && (
-          <span className="text-muted small">{supTotal} m² total</span>
+          <span className="text-muted small">{supTotal} m²</span>
         )}
       </div>
 
       {trabajos.length === 0 ? (
-        <div className="card text-center py-4 text-muted small">
-          <i className="bi bi-clipboard fs-3 mb-2 d-block opacity-50"></i>
-          Todavía no cargaste trabajos en este turno
+        <div className="text-center py-5 text-muted">
+          <i className="bi bi-clipboard" style={{ fontSize: 40, opacity: 0.2 }}></i>
+          <p className="small mt-3 mb-0">Todavía no hay trabajos en este turno</p>
         </div>
       ) : (
-        <div className="row g-2">
+        <div className="d-flex flex-column gap-2">
           {trabajos.map((t) => {
-            const color = COLORES_OP[t.estadoOperativo] || 'secondary';
+            const estado = t.estadoOperativo || "Sin iniciar";
+            const colores = COLOR_ESTADO[estado] || COLOR_ESTADO["Sin iniciar"];
+            const borderColor = BORDER_ESTADO[estado] || "#adb5bd";
             const getSup = (tipo) =>
               (t.items || []).find((i) => i.tipoTrabajo === tipo)?.superficie || 0;
-            return (
-              <div key={t.id} className="col-12 col-md-6 col-xl-4">
-                <div className="card h-100 border-start border-3 border-primary shadow-sm">
-                  <div className="card-body py-2 px-3">
 
-                    {/* Intersección */}
-                    <div className="fw-semibold mb-1">
-                      <i className="bi bi-geo-alt me-1 text-primary"></i>
+            return (
+              <div
+                key={t.id}
+                className="card shadow-sm"
+                style={{ borderLeft: `3px solid ${borderColor}` }}
+              >
+                <div className="card-body py-2 px-3">
+
+                  {/* Fila 1: intersección + botones */}
+                  <div className="d-flex align-items-start justify-content-between gap-2 mb-1">
+                    <div className="fw-semibold lh-sm" style={{ fontSize: 15 }}>
                       {t.calle1} y {t.calle2}
                     </div>
-
-                    {/* Superficies por tipo */}
-                    <div className="d-flex gap-3 flex-wrap mb-2" style={{ fontSize: 12 }}>
-                      {getSup('SENDAS') > 0 && (
-                        <span className="text-muted">Sendas <strong>{getSup('SENDAS').toFixed(1)}</strong> m²</span>
-                      )}
-                      {getSup('RAMPAS') > 0 && (
-                        <span className="text-muted">Rampas <strong>{getSup('RAMPAS').toFixed(1)}</strong> m²</span>
-                      )}
-                      {getSup('CORDONES') > 0 && (
-                        <span className="text-muted">Cordones <strong>{getSup('CORDONES').toFixed(1)}</strong> m²</span>
-                      )}
+                    <div className="d-flex gap-1 flex-shrink-0">
+                      <button
+                        className="btn btn-sm btn-outline-secondary"
+                        style={{ padding: "2px 8px" }}
+                        onClick={() => navigate(`/editar/${t.id}`)}
+                      >
+                        <i className="bi bi-pencil" style={{ fontSize: 12 }}></i>
+                      </button>
+                      <button
+                        className="btn btn-sm btn-outline-danger"
+                        style={{ padding: "2px 8px" }}
+                        onClick={() => handleEliminar(t)}
+                      >
+                        <i className="bi bi-trash" style={{ fontSize: 12 }}></i>
+                      </button>
                     </div>
-
-                    {/* Badge estado + acciones */}
-                    <div className="d-flex align-items-center justify-content-between gap-2">
-                      <span className={`badge bg-${color} text-${color === 'warning' ? 'dark' : 'white'}`}>
-                        {t.estadoOperativo}
-                      </span>
-                      <div className="d-flex gap-1">
-                        <button
-                          className="btn btn-sm btn-outline-secondary"
-                          onClick={() => navigate(`/editar/${t.id}`)}
-                        >
-                          <i className="bi bi-pencil"></i>
-                        </button>
-                        <button
-                          className="btn btn-sm btn-outline-danger"
-                          onClick={() => handleEliminar(t)}
-                        >
-                          <i className="bi bi-trash"></i>
-                        </button>
-                      </div>
-                    </div>
-
                   </div>
+
+                  {/* Fila 2: superficies */}
+                  <div className="d-flex gap-3 flex-wrap mb-1" style={{ fontSize: 12, color: "#6c757d" }}>
+                    {getSup("SENDAS") > 0 && (
+                      <span>Sendas <strong style={{ color: "#212529" }}>{getSup("SENDAS").toFixed(1)}</strong> m²</span>
+                    )}
+                    {getSup("RAMPAS") > 0 && (
+                      <span>Rampas <strong style={{ color: "#212529" }}>{getSup("RAMPAS").toFixed(1)}</strong> m²</span>
+                    )}
+                    {getSup("CORDONES") > 0 && (
+                      <span>Cordones <strong style={{ color: "#212529" }}>{getSup("CORDONES").toFixed(1)}</strong> m²</span>
+                    )}
+                  </div>
+
+                  {/* Fila 3: badge estado */}
+                  <span
+                    className="badge"
+                    style={{ background: colores.bg, color: colores.text, fontSize: 11 }}
+                  >
+                    {estado}
+                  </span>
+
                 </div>
               </div>
             );
