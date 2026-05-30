@@ -41,7 +41,7 @@ export default function DetallePage() {
   );
 
   return (
-    <div className="container-fluid p-3 pb-5">
+    <div className="p-3 pb-5">
       <div className="d-flex align-items-center mb-3 gap-2">
         <button className="btn btn-sm btn-outline-secondary" onClick={() => navigate(-1)}>
           <i className="bi bi-arrow-left"></i>

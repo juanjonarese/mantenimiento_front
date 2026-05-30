@@ -326,7 +326,7 @@ export default function NuevoTrabajoPage() {
 
   if (guardadoOk) {
     return (
-      <div className="container-fluid p-3 pb-5 d-flex flex-column align-items-center justify-content-center" style={{ minHeight: '70vh' }}>
+      <div className="p-3 pb-5 d-flex flex-column align-items-center justify-content-center" style={{ minHeight: '70vh' }}>
         <div className="text-center mb-4">
           <i className="bi bi-check-circle-fill text-success" style={{ fontSize: 56 }}></i>
           <h5 className="fw-bold mt-3 mb-1">¡Trabajo guardado!</h5>
@@ -361,7 +361,7 @@ export default function NuevoTrabajoPage() {
   }
 
   return (
-    <div className="container-fluid p-3 pb-5">
+    <div className="p-3 pb-5">
       <h5 className="fw-bold mb-3">
         <i className="bi bi-geo-alt me-2 text-primary"></i>
         {esEdicion ? 'Editar trabajo' : 'Nuevo trabajo'}
