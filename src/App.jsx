@@ -93,7 +93,7 @@ function App() {
           </Layout></ProtectedRoute>
         } />
         <Route path="/cerrar-turno" element={
-          <ProtectedRoute roles={['supervisor']}><Layout>
+          <ProtectedRoute roles={['supervisor']}><Layout fullWidth>
             <Suspense fallback={<Spinner />}><CerrarTurnoPage /></Suspense>
           </Layout></ProtectedRoute>
         } />

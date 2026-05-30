@@ -205,29 +205,39 @@ export default function CerrarTurnoPage() {
   const matSeleccionado = catalogo.find((m) => String(m._id) === selId);
 
   return (
-    <div className="p-3 pb-5">
+    <div>
 
-      {esPendiente && (
-        <div className="alert alert-warning d-flex align-items-start gap-2 mb-4">
-          <i className="bi bi-exclamation-triangle-fill fs-5 flex-shrink-0 mt-1"></i>
+      {/* ── HEADER ── */}
+      <div className="page-header bg-white border-bottom px-3 px-lg-4 py-3 mb-0">
+        <div className="d-flex align-items-center justify-content-between gap-2">
           <div>
-            <div className="fw-semibold">Tenés un turno sin cerrar</div>
+            <h4 className="fw-bold mb-0">
+              <i className="bi bi-door-closed me-2 text-danger"></i>Cerrar turno
+            </h4>
+            {turno?.fechaInicio && (
+              <small className="text-muted">
+                Iniciado el {formatFecha(turno.fechaInicio)} a las {formatHora(turno.fechaInicio)}
+              </small>
+            )}
+          </div>
+          <button className="btn btn-outline-secondary btn-sm" onClick={() => navigate(-1)}>
+            <i className="bi bi-arrow-left me-1"></i>Volver
+          </button>
+        </div>
+
+        {esPendiente && (
+          <div className="alert alert-warning d-flex align-items-start gap-2 mb-0 mt-3 py-2">
+            <i className="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
             <div className="small">
-              Iniciado el {formatFecha(turno?.fechaInicio)} a las {formatHora(turno?.fechaInicio)}.
+              <span className="fw-semibold">Tenés un turno sin cerrar. </span>
               Completá los materiales y cerralo para iniciar el turno de hoy.
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      <h5 className="fw-bold mb-1">
-        <i className="bi bi-door-closed me-2 text-danger"></i>Cerrar turno
-      </h5>
-      {turno?.fechaInicio && (
-        <div className="text-muted small mb-4">
-          Turno iniciado el {formatFecha(turno.fechaInicio)} a las {formatHora(turno.fechaInicio)}
-        </div>
-      )}
+      {/* ── CONTENIDO ── */}
+      <div className="px-3 py-3 pb-5" style={{ maxWidth: 720, margin: "0 auto" }}>
 
       <form onSubmit={handleCerrar}>
 
@@ -329,21 +339,14 @@ export default function CerrarTurnoPage() {
           </div>
         )}
 
-        <div className="d-flex flex-column gap-2">
-          <button type="submit" className="btn btn-danger btn-lg w-100 py-3" disabled={guardando}>
-            {guardando
-              ? <><span className="spinner-border spinner-border-sm me-2"></span>Cerrando turno...</>
-              : <><i className="bi bi-check-circle me-2 fs-5"></i>Confirmar cierre de turno</>
-            }
-          </button>
-          {!esPendiente && (
-            <button type="button" className="btn btn-outline-secondary btn-lg w-100"
-              onClick={() => navigate(-1)} disabled={guardando}>
-              Cancelar
-            </button>
-          )}
-        </div>
+        <button type="submit" className="btn btn-danger btn-lg w-100 py-3" disabled={guardando}>
+          {guardando
+            ? <><span className="spinner-border spinner-border-sm me-2"></span>Cerrando turno...</>
+            : <><i className="bi bi-check-circle me-2 fs-5"></i>Confirmar cierre de turno</>
+          }
+        </button>
       </form>
+      </div>
     </div>
   );
 }
