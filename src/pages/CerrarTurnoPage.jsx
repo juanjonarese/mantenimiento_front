@@ -244,37 +244,34 @@ export default function CerrarTurnoPage() {
               </p>
             ) : (
               <>
-                {/* Fila seleccionar + cantidad */}
-                <div className="d-flex gap-2 mb-1 align-items-center">
-                  <select
-                    className="form-select"
-                    value={selId}
-                    onChange={(e) => { setSelId(e.target.value); setErrorAgregar(""); }}
-                  >
-                    {catalogo.map((m) => (
-                      <option key={m._id} value={String(m._id)}>
-                        {m.nombre}
-                      </option>
-                    ))}
-                  </select>
+                {/* Fila 1: selector material */}
+                <select
+                  className="form-select mb-2"
+                  value={selId}
+                  onChange={(e) => { setSelId(e.target.value); setErrorAgregar(""); }}
+                >
+                  {catalogo.map((m) => (
+                    <option key={m._id} value={String(m._id)}>{m.nombre}</option>
+                  ))}
+                </select>
 
+                {/* Fila 2: cantidad + unidad + botón */}
+                <div className="d-flex gap-2 mb-1 align-items-center">
                   <input
                     type="number"
                     className="form-control text-center"
-                    style={{ width: 90, flexShrink: 0 }}
+                    style={{ maxWidth: 110 }}
                     min="0"
                     step="any"
-                    placeholder="Cant."
+                    placeholder="Cantidad"
                     value={cantInput}
                     onChange={(e) => { setCantInput(e.target.value); setErrorAgregar(""); }}
                     onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAgregar(); } }}
                   />
-
-                  <span className="text-muted small text-nowrap" style={{ minWidth: 45 }}>
+                  <span className="text-muted small text-nowrap">
                     {matSeleccionado?.unidad || ""}
                   </span>
-
-                  <button type="button" className="btn btn-primary flex-shrink-0" onClick={handleAgregar}>
+                  <button type="button" className="btn btn-primary ms-auto" onClick={handleAgregar}>
                     <i className="bi bi-plus-lg me-1"></i>Agregar
                   </button>
                 </div>
