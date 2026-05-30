@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { cerrarTurno, obtenerTurnoActivo, abrirTurno, obtenerMaterialesCatalogo, actualizarMaterialCatalogo } from "../services/api";
+import { cerrarTurno, obtenerTurnoActivo, abrirTurno, obtenerMaterialesCatalogo } from "../services/api";
 import { obtenerTrabajos } from "../db/db";
 import Swal from "sweetalert2";
 
@@ -149,24 +149,17 @@ export default function CerrarTurnoPage() {
 
     if (!isConfirmed) return;
 
-    const materialesPayload = listaUsados.map(({ nombre, cantidad, unidad }) => ({
-      nombre, cantidad, unidad,
+    const materialesPayload = listaUsados.map(({ _id, nombre, cantidad, unidad }) => ({
+      materialId: String(_id),
+      nombre,
+      cantidad,
+      unidad,
     }));
 
     setGuardando(true);
     setError("");
     try {
       await cerrarTurno(turno._id, { materiales: materialesPayload, observaciones });
-
-      // Descontar stock de cada material usado
-      await Promise.allSettled(
-        listaUsados.map((u) => {
-          const mat = catalogo.find((m) => String(m._id) === String(u._id));
-          if (!mat) return Promise.resolve();
-          const nuevoStock = Math.max(0, (mat.stock || 0) - u.cantidad);
-          return actualizarMaterialCatalogo(mat._id, { ...mat, stock: nuevoStock });
-        })
-      );
 
       localStorage.removeItem("turnoId");
 
@@ -248,7 +241,12 @@ export default function CerrarTurnoPage() {
           </div>
           <div className="card-body">
 
-            {catalogo.length === 0 ? (
+            {!tieneTrabajos ? (
+              <div className="alert alert-secondary mb-0 py-2 small d-flex align-items-center gap-2">
+                <i className="bi bi-info-circle flex-shrink-0"></i>
+                No hay trabajos registrados en este turno, no se puede descontar material.
+              </div>
+            ) : catalogo.length === 0 ? (
               <p className="text-muted small text-center mb-0">
                 No hay materiales configurados. El admin debe cargarlos en la sección Materiales.
               </p>
