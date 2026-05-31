@@ -8,6 +8,16 @@ import {
 import { obtenerMateriales as obtenerMaterialesLocales } from '../db/db';
 import { TIPOS_TRABAJO } from '../constants';
 
+// Tipos canónicos usados en DB + alias de display para compatibilidad
+const TIPOS_TAREA_OPTIONS = [
+  { key: 'SENDAS',   label: 'Sendas peatonales' },
+  { key: 'RAMPAS',   label: 'Rampas' },
+  { key: 'CORDONES', label: 'Cordones' },
+  ...TIPOS_TRABAJO
+    .filter((t) => !['Senda peatonal','Rampa','Cordón'].includes(t))
+    .map((t) => ({ key: t, label: t })),
+];
+
 const UNIDADES = ['litros', 'kg', 'unidades', 'm²', 'bolsas', 'tambores'];
 const NOMBRES_SUGERIDOS = [
   'Pintura blanca', 'Pintura amarilla', 'Microesferas',
@@ -291,16 +301,16 @@ export default function MaterialesPage() {
                     <i className="bi bi-link-45deg me-1"></i>Tipos de tarea asociados
                   </label>
                   <div className="d-flex flex-wrap gap-2">
-                    {TIPOS_TRABAJO.map((tipo) => (
-                      <div key={tipo} className="form-check form-check-inline m-0">
+                    {TIPOS_TAREA_OPTIONS.map(({ key, label }) => (
+                      <div key={key} className="form-check form-check-inline m-0">
                         <input
                           className="form-check-input"
                           type="checkbox"
-                          id={`tipo-${tipo}`}
-                          checked={form.tiposTarea.includes(tipo)}
-                          onChange={() => handleTipoTareaChange(tipo)}
+                          id={`tipo-${key}`}
+                          checked={form.tiposTarea.includes(key)}
+                          onChange={() => handleTipoTareaChange(key)}
                         />
-                        <label className="form-check-label small" htmlFor={`tipo-${tipo}`}>{tipo}</label>
+                        <label className="form-check-label small" htmlFor={`tipo-${key}`}>{label}</label>
                       </div>
                     ))}
                   </div>
