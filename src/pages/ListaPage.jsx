@@ -5,16 +5,19 @@ import { obtenerTrabajos, eliminarTrabajo, importarDesdeBackend } from '../db/db
 import { obtenerTrabajosBackend, eliminarTrabajoBackend } from '../services/api';
 import { COLORES_ESTADO_OP, COLORES_ESTADO_ADMIN } from '../constants';
 import ImportarExcelModal from '../components/ImportarExcelModal';
+import EditarTrabajoModal from '../components/EditarTrabajoModal';
 
 export default function ListaPage() {
   const esAdmin = localStorage.getItem('rol') === 'admin';
 
   const [trabajos, setTrabajos] = useState([]);
+  const [busqueda, setBusqueda] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('');
   const [filtroCertif, setFiltroCertif] = useState('');
   const [sincronizando, setSincronizando] = useState(false);
   const [cargando, setCargando] = useState(true);
   const [mostrarImportar, setMostrarImportar] = useState(false);
+  const [trabajoEditar, setTrabajoEditar] = useState(null);
 
   const cargar = async () => {
     setCargando(true);
@@ -60,9 +63,13 @@ export default function ListaPage() {
   const POR_PAGINA = 30;
 
   const filtrados = trabajos.filter((t) => {
+    const q = busqueda.toLowerCase().trim();
+    const coincideBusqueda = !q ||
+      (t.calle1 || '').toLowerCase().includes(q) ||
+      (t.calle2 || '').toLowerCase().includes(q);
     const coincideEstado = !filtroEstado || t.estadoOperativo === filtroEstado;
     const coincideCertif = !filtroCertif || t.estadoAdmin === filtroCertif;
-    return coincideEstado && coincideCertif;
+    return coincideBusqueda && coincideEstado && coincideCertif;
   });
 
   const totalPaginas = Math.max(1, Math.ceil(filtrados.length / POR_PAGINA));
@@ -70,12 +77,18 @@ export default function ListaPage() {
   const paginados = filtrados.slice((paginaActual - 1) * POR_PAGINA, paginaActual * POR_PAGINA);
 
   // Resetear a página 1 cuando cambian los filtros
-  useEffect(() => { setPagina(1); }, [filtroEstado, filtroCertif]);
+  useEffect(() => { setPagina(1); }, [busqueda, filtroEstado, filtroCertif]);
 
   // Extrae la superficie de un tipo específico, soporta formato items[] y legacy
   const getSup = (t, tipo) => {
     if (t.items?.length) return t.items.find((i) => i.tipoTrabajo === tipo)?.superficie || 0;
     return t.tipoTrabajo === tipo ? (t.superficie || 0) : 0;
+  };
+
+  // Extrae cantidad de un material por nombre (búsqueda parcial, sin importar mayúsculas)
+  const getMat = (t, nombre) => {
+    const n = nombre.toLowerCase();
+    return t.materiales?.find((m) => m.nombre?.toLowerCase().includes(n))?.cantidad || 0;
   };
 
   return (
@@ -114,6 +127,23 @@ export default function ListaPage() {
 
         {/* Filtros */}
         <div className="row g-2">
+          <div className="col-12 col-md-6">
+            <div className="input-group input-group-sm">
+              <span className="input-group-text"><i className="bi bi-search"></i></span>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Buscar por calle..."
+                value={busqueda}
+                onChange={(e) => { setBusqueda(e.target.value); setPagina(1); }}
+              />
+              {busqueda && (
+                <button className="btn btn-outline-secondary" onClick={() => setBusqueda('')}>
+                  <i className="bi bi-x"></i>
+                </button>
+              )}
+            </div>
+          </div>
           <div className="col-6 col-md-3">
             <select className="form-select form-select-sm" value={filtroEstado}
               onChange={(e) => setFiltroEstado(e.target.value)}>
@@ -157,70 +187,105 @@ export default function ListaPage() {
               <span>Cordones: <span className="text-primary">{filtrados.reduce((a, t) => a + getSup(t, 'CORDONES'), 0).toFixed(1)} m²</span></span>
             </div>
 
-            {/* ── CARDS ── */}
-            <div className="row g-2">
+            {/* ── CARDS (mobile) ── */}
+            <div className="d-md-none row g-2">
               {paginados.map((t) => (
-                <div key={t.id} className="col-12 col-md-6 col-xl-4">
-                  <div className="card h-100">
+                <div key={t.id} className="col-12">
+                  <div className="card">
                     <div className="card-body py-2 px-3">
-
-                      {/* Intersección + fecha */}
                       <div className="d-flex justify-content-between align-items-start mb-1">
                         <div className="fw-semibold lh-sm">{t.calle1} y {t.calle2}</div>
                         <span className="small text-muted text-nowrap ms-2">
-                          {new Date(t.fechaCarga).toLocaleDateString('es-AR', {
-                            day: '2-digit', month: '2-digit', year: '2-digit',
-                          })}
+                          {new Date(t.fechaCarga).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
                         </span>
                       </div>
-
-                      {/* Superficies */}
                       <div className="d-flex gap-3 flex-wrap mb-2" style={{ fontSize: 12 }}>
-                        {getSup(t, 'SENDAS') > 0 && (
-                          <span className="text-muted">Sendas <strong>{getSup(t, 'SENDAS').toFixed(1)}</strong> m²</span>
-                        )}
-                        {getSup(t, 'RAMPAS') > 0 && (
-                          <span className="text-muted">Rampas <strong>{getSup(t, 'RAMPAS').toFixed(1)}</strong> m²</span>
-                        )}
-                        {getSup(t, 'CORDONES') > 0 && (
-                          <span className="text-muted">Cordones <strong>{getSup(t, 'CORDONES').toFixed(1)}</strong> m²</span>
-                        )}
+                        {getSup(t, 'SENDAS')   > 0 && <span className="text-muted">Sendas <strong>{getSup(t, 'SENDAS').toFixed(1)}</strong> m²</span>}
+                        {getSup(t, 'RAMPAS')   > 0 && <span className="text-muted">Rampas <strong>{getSup(t, 'RAMPAS').toFixed(1)}</strong> m²</span>}
+                        {getSup(t, 'CORDONES') > 0 && <span className="text-muted">Cordones <strong>{getSup(t, 'CORDONES').toFixed(1)}</strong> m²</span>}
                       </div>
-
-                      {/* Badges + acciones */}
                       <div className="d-flex align-items-center justify-content-between gap-2 flex-wrap">
                         <div className="d-flex gap-1 flex-wrap">
-                          <span className={`badge bg-${COLORES_ESTADO_OP[t.estadoOperativo]}`}>
-                            {t.estadoOperativo}
-                          </span>
-                          <span className={`badge bg-${COLORES_ESTADO_ADMIN[t.estadoAdmin]}`}>
-                            {t.estadoAdmin}
-                          </span>
-                          {!t.sincronizado && (
-                            <span className="badge bg-secondary">
-                              <i className="bi bi-cloud-slash me-1"></i>local
-                            </span>
-                          )}
+                          <span className={`badge bg-${COLORES_ESTADO_OP[t.estadoOperativo]}`}>{t.estadoOperativo}</span>
+                          <span className={`badge bg-${COLORES_ESTADO_ADMIN[t.estadoAdmin]}`}>{t.estadoAdmin}</span>
                         </div>
                         <div className="d-flex gap-1">
-                          <Link to={`/detalle/${t.id}`} className="btn btn-sm btn-outline-primary">
-                            <i className="bi bi-eye"></i>
-                          </Link>
+                          <Link to={`/detalle/${t.id}`} className="btn btn-sm btn-outline-primary"><i className="bi bi-eye"></i></Link>
                           {esAdmin && (<>
-                            <Link to={`/editar/${t.id}`} className="btn btn-sm btn-outline-secondary">
-                              <i className="bi bi-pencil"></i>
-                            </Link>
-                            <button className="btn btn-sm btn-outline-danger" onClick={() => handleEliminar(t)}>
-                              <i className="bi bi-trash"></i>
-                            </button>
+                            <button className="btn btn-sm btn-outline-secondary" onClick={() => setTrabajoEditar(t)}><i className="bi bi-pencil"></i></button>
+                            <button className="btn btn-sm btn-outline-danger" onClick={() => handleEliminar(t)}><i className="bi bi-trash"></i></button>
                           </>)}
                         </div>
                       </div>
-
                     </div>
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* ── TABLA (desktop) ── */}
+            <div className="d-none d-md-block">
+              <div className="table-responsive">
+                <table className="table table-sm table-hover align-middle mb-0" style={{ fontSize: 13 }}>
+                  <thead className="table-light">
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Intersección</th>
+                      <th className="text-end">Sendas m²</th>
+                      <th className="text-end">Rampas m²</th>
+                      <th className="text-end">Cordones m²</th>
+                      <th className="text-end">B.Termo</th>
+                      <th className="text-end">B.Micro</th>
+                      <th className="text-end">Imprim. l</th>
+                      <th className="text-end">P.Acrílica l</th>
+                      <th>Estado</th>
+                      <th>Certificación</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginados.map((t) => (
+                      <tr key={t.id}>
+                        <td className="text-nowrap text-muted" style={{ fontSize: 12 }}>
+                          {new Date(t.fechaCarga).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                        </td>
+                        <td className="fw-semibold">{t.calle1} y {t.calle2}</td>
+                        <td className="text-end">{getSup(t, 'SENDAS') > 0 ? getSup(t, 'SENDAS').toFixed(1) : <span className="text-muted">—</span>}</td>
+                        <td className="text-end">{getSup(t, 'RAMPAS') > 0 ? getSup(t, 'RAMPAS').toFixed(1) : <span className="text-muted">—</span>}</td>
+                        <td className="text-end">{getSup(t, 'CORDONES') > 0 ? getSup(t, 'CORDONES').toFixed(1) : <span className="text-muted">—</span>}</td>
+                        <td className="text-end">{getMat(t, 'termoplást') > 0 ? getMat(t, 'termoplást').toFixed(1) : <span className="text-muted">—</span>}</td>
+                        <td className="text-end">{getMat(t, 'microesfera') > 0 ? getMat(t, 'microesfera').toFixed(1) : <span className="text-muted">—</span>}</td>
+                        <td className="text-end">{getMat(t, 'imprimac') > 0 ? getMat(t, 'imprimac').toFixed(1) : <span className="text-muted">—</span>}</td>
+                        <td className="text-end">{getMat(t, 'acrílica') > 0 ? getMat(t, 'acrílica').toFixed(1) : <span className="text-muted">—</span>}</td>
+                        <td><span className={`badge bg-${COLORES_ESTADO_OP[t.estadoOperativo]}`}>{t.estadoOperativo}</span></td>
+                        <td><span className={`badge bg-${COLORES_ESTADO_ADMIN[t.estadoAdmin]}`}>{t.estadoAdmin}</span></td>
+                        <td>
+                          <div className="d-flex gap-1 justify-content-end">
+                            <Link to={`/detalle/${t.id}`} className="btn btn-sm btn-outline-primary"><i className="bi bi-eye"></i></Link>
+                            {esAdmin && (<>
+                              <button className="btn btn-sm btn-outline-secondary" onClick={() => setTrabajoEditar(t)}><i className="bi bi-pencil"></i></button>
+                              <button className="btn btn-sm btn-outline-danger" onClick={() => handleEliminar(t)}><i className="bi bi-trash"></i></button>
+                            </>)}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot className="table-light fw-semibold" style={{ fontSize: 12 }}>
+                    <tr>
+                      <td colSpan={2}>Total ({filtrados.length})</td>
+                      <td className="text-end">{filtrados.reduce((a, t) => a + getSup(t, 'SENDAS'), 0).toFixed(1)}</td>
+                      <td className="text-end">{filtrados.reduce((a, t) => a + getSup(t, 'RAMPAS'), 0).toFixed(1)}</td>
+                      <td className="text-end">{filtrados.reduce((a, t) => a + getSup(t, 'CORDONES'), 0).toFixed(1)}</td>
+                      <td className="text-end">{filtrados.reduce((a, t) => a + getMat(t, 'termoplást'), 0).toFixed(1)}</td>
+                      <td className="text-end">{filtrados.reduce((a, t) => a + getMat(t, 'microesfera'), 0).toFixed(1)}</td>
+                      <td className="text-end">{filtrados.reduce((a, t) => a + getMat(t, 'imprimac'), 0).toFixed(1)}</td>
+                      <td className="text-end">{filtrados.reduce((a, t) => a + getMat(t, 'acrílica'), 0).toFixed(1)}</td>
+                      <td colSpan={3}></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
             </div>
 
             {/* ── PAGINADOR ── */}
@@ -266,6 +331,13 @@ export default function ListaPage() {
         <ImportarExcelModal
           onClose={() => setMostrarImportar(false)}
           onImportado={cargar}
+        />
+      )}
+      {trabajoEditar && (
+        <EditarTrabajoModal
+          trabajo={trabajoEditar}
+          onClose={() => setTrabajoEditar(null)}
+          onGuardado={cargar}
         />
       )}
     </div>

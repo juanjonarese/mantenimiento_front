@@ -12,7 +12,7 @@ export default function DetallePage() {
   const [fotoAmpliada, setFotoAmpliada] = useState(null);
 
   useEffect(() => {
-    obtenerTrabajoPorId(Number(id)).then((t) => {
+    obtenerTrabajoPorId(id).then((t) => {
       if (!t) navigate('/lista');
       else setTrabajo(t);
     });

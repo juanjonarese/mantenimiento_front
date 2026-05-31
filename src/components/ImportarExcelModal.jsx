@@ -113,7 +113,25 @@ export default function ImportarExcelModal({ onClose, onImportado }) {
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, { type: 'array', cellDates: true });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+      // Leer como arrays crudos para no perder columnas sin header
+      const rawRows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+      if (!rawRows.length || rawRows[0].length === 0) {
+        setError('El archivo está vacío o no tiene encabezados reconocibles.');
+        setStep('idle');
+        return;
+      }
+
+      // Primera fila como headers; columnas sin nombre reciben __col0, __col1, etc.
+      const headerRow = rawRows[0];
+      const headers = headerRow.map((h, i) =>
+        (h !== '' && h !== null && h !== undefined) ? String(h) : `__col${i}`
+      );
+
+      // Filas de datos como objetos
+      const rows = rawRows.slice(1)
+        .filter((r) => r.some((c) => c !== '' && c !== null && c !== undefined))
+        .map((r) => Object.fromEntries(headers.map((h, i) => [h, r[i] ?? ''])));
 
       if (!rows.length) {
         setError('El archivo está vacío o no tiene encabezados reconocibles.');
@@ -121,17 +139,28 @@ export default function ImportarExcelModal({ onClose, onImportado }) {
         return;
       }
 
-      const headers = Object.keys(rows[0]);
+      // Detecta la columna de fecha: busca por header o por valores tipo "abr-26" / Date
+      const RE_FECHA_MES = /^[a-záéíóú]+-\d{2,4}$/i;
+      const colFecha = findCol(headers, 'fecha', 'mes', 'periodo', 'month', 'date') ||
+        headers.find((h) => rows.slice(0, 5).some((r) => {
+          const v = r[h];
+          return v instanceof Date || RE_FECHA_MES.test(String(v || '').trim());
+        }));
+
       const COL = {
-        fecha:    findCol(headers, 'fecha'),
-        inter:    findCol(headers, 'intersec', 'calles', 'interseccion'),
-        lat:      findCol(headers, 'latitud', 'lat'),
-        lng:      findCol(headers, 'longitud', 'lon', 'lng'),
-        sendas:   findCol(headers, 'senda'),
-        rampas:   findCol(headers, 'rampa'),
-        cordones: findCol(headers, 'cordon'),
-        estado:   findCol(headers, 'estado'),
-        certif:   findCol(headers, 'certif'),
+        fecha:        colFecha,
+        inter:        findCol(headers, 'intersec', 'calles', 'interseccion'),
+        lat:          findCol(headers, 'latitud', 'lat', 'latitude'),
+        lng:          findCol(headers, 'longitud', 'lon', 'lng', 'longitude'),
+        sendas:       findCol(headers, 'senda'),
+        rampas:       findCol(headers, 'rampa'),
+        cordones:     findCol(headers, 'cordon'),
+        bolsasTermo:  findCol(headers, 'termoplast'),
+        bolsasMicro:  findCol(headers, 'microesfera'),
+        litrosImprim: findCol(headers, 'imprimac'),
+        litrosPintura:findCol(headers, 'acrilica', 'pintura acril'),
+        estado:       findCol(headers, 'estado'),
+        certif:       findCol(headers, 'certif'),
       };
 
       const parsed = rows.map((row) => {
@@ -143,14 +172,24 @@ export default function ImportarExcelModal({ onClose, onImportado }) {
         const lng = lngExcel !== 0 ? lngExcel : (inter.coords?.lng ?? 0);
         const needsGeocode = !inter.calle1 && (lat !== 0 || lng !== 0);
 
-        const sendas   = numVal(row[COL.sendas]);
-        const rampas   = numVal(row[COL.rampas]);
-        const cordones = numVal(row[COL.cordones]);
+        const sendas       = numVal(row[COL.sendas]);
+        const rampas       = numVal(row[COL.rampas]);
+        const cordones     = numVal(row[COL.cordones]);
+        const bolsasTermo  = numVal(row[COL.bolsasTermo]);
+        const bolsasMicro  = numVal(row[COL.bolsasMicro]);
+        const litrosImprim = numVal(row[COL.litrosImprim]);
+        const litrosPintura = numVal(row[COL.litrosPintura]);
 
         const items = [];
         if (sendas   > 0) items.push({ tipoTrabajo: 'SENDAS',   superficie: sendas });
         if (rampas   > 0) items.push({ tipoTrabajo: 'RAMPAS',   superficie: rampas });
         if (cordones > 0) items.push({ tipoTrabajo: 'CORDONES', superficie: cordones });
+
+        const materiales = [];
+        if (bolsasTermo   > 0) materiales.push({ nombre: 'Bolsas termoplástica', cantidad: bolsasTermo,   unidad: 'u' });
+        if (bolsasMicro   > 0) materiales.push({ nombre: 'Bolsas microesferas',  cantidad: bolsasMicro,   unidad: 'u' });
+        if (litrosImprim  > 0) materiales.push({ nombre: 'Imprimación',           cantidad: litrosImprim,  unidad: 'l' });
+        if (litrosPintura > 0) materiales.push({ nombre: 'Pintura acrílica',      cantidad: litrosPintura, unidad: 'l' });
 
         return {
           fechaCarga:      parseFecha(row[COL.fecha]),
@@ -160,6 +199,11 @@ export default function ImportarExcelModal({ onClose, onImportado }) {
           lng,
           needsGeocode,
           items,
+          materiales,
+          bolsasTermo,
+          bolsasMicro,
+          litrosImprim,
+          litrosPintura,
           superficie:      sendas + rampas + cordones,
           estadoOperativo: mapEstado(row[COL.estado]),
           estadoAdmin:     mapCertif(row[COL.certif]),
@@ -200,6 +244,7 @@ export default function ImportarExcelModal({ onClose, onImportado }) {
         lat:             f.lat,
         lng:             f.lng,
         items:           f.items,
+        materiales:      f.materiales,
         superficie:      f.superficie,
         estadoOperativo: f.estadoOperativo,
         estadoAdmin:     f.estadoAdmin,
@@ -244,7 +289,7 @@ export default function ImportarExcelModal({ onClose, onImportado }) {
                 <i className="bi bi-file-earmark-spreadsheet display-3 text-success d-block mb-3"></i>
                 <p className="text-muted mb-1 small">El archivo debe tener estas columnas:</p>
                 <p className="fw-semibold small mb-4">
-                  Fecha · INTERSECCIÓN DE CALLES · Latitud · Longitud · SENDAS · RAMPAS · CORDONES · ESTADO · CERTIFICADO
+                  Fecha · INTERSECCIÓN DE CALLES · Latitude · Longitude · SENDAS · RAMPAS · CORDONES · BOLSAS TERMOPLASTICA · BOLSAS MICROESFERAS · LITROS IMPRIMACION · LITROS PINTURA ACRILICA · ESTADO · CERTIFICADO
                 </p>
                 <input
                   ref={fileRef}
@@ -307,6 +352,10 @@ export default function ImportarExcelModal({ onClose, onImportado }) {
                         <th className="text-end">Sendas m²</th>
                         <th className="text-end">Rampas m²</th>
                         <th className="text-end">Cordones m²</th>
+                        <th className="text-end">B.Termo</th>
+                        <th className="text-end">B.Micro</th>
+                        <th className="text-end">Imprim. l</th>
+                        <th className="text-end">P.Acrílica l</th>
                         <th>Estado</th>
                         <th>Certif.</th>
                       </tr>
@@ -329,6 +378,10 @@ export default function ImportarExcelModal({ onClose, onImportado }) {
                           <td className="text-end">{f.items.find((x) => x.tipoTrabajo === 'SENDAS')?.superficie ?? '—'}</td>
                           <td className="text-end">{f.items.find((x) => x.tipoTrabajo === 'RAMPAS')?.superficie ?? '—'}</td>
                           <td className="text-end">{f.items.find((x) => x.tipoTrabajo === 'CORDONES')?.superficie ?? '—'}</td>
+                          <td className="text-end">{f.bolsasTermo   || '—'}</td>
+                          <td className="text-end">{f.bolsasMicro   || '—'}</td>
+                          <td className="text-end">{f.litrosImprim  || '—'}</td>
+                          <td className="text-end">{f.litrosPintura || '—'}</td>
                           <td>
                             <span className={`badge bg-${f.estadoOperativo === 'Terminado' ? 'success' : 'secondary'}`}>
                               {f.estadoOperativo}
@@ -353,6 +406,18 @@ export default function ImportarExcelModal({ onClose, onImportado }) {
                         </td>
                         <td className="text-end small">
                           {filas.reduce((a, f) => a + (f.items.find((x) => x.tipoTrabajo === 'CORDONES')?.superficie || 0), 0).toFixed(2)}
+                        </td>
+                        <td className="text-end small">
+                          {filas.reduce((a, f) => a + (f.bolsasTermo || 0), 0).toFixed(1)}
+                        </td>
+                        <td className="text-end small">
+                          {filas.reduce((a, f) => a + (f.bolsasMicro || 0), 0).toFixed(1)}
+                        </td>
+                        <td className="text-end small">
+                          {filas.reduce((a, f) => a + (f.litrosImprim || 0), 0).toFixed(1)}
+                        </td>
+                        <td className="text-end small">
+                          {filas.reduce((a, f) => a + (f.litrosPintura || 0), 0).toFixed(1)}
                         </td>
                         <td colSpan={2}></td>
                       </tr>

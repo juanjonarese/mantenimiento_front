@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { obtenerTrabajos, guardarTrabajo } from '../db/db';
+import { obtenerTrabajos, guardarTrabajo, importarDesdeBackend } from '../db/db';
+import { obtenerTrabajosBackend } from '../services/api';
 import * as XLSX from 'xlsx';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -268,6 +269,10 @@ export default function CertificacionesPage() {
   useEffect(() => { cargar(); }, []);
 
   async function cargar() {
+    try {
+      const { trabajos: backendData } = await obtenerTrabajosBackend();
+      if (backendData?.length) await importarDesdeBackend(backendData);
+    } catch { /* sin conexión, usa store local */ }
     const todos = await obtenerTrabajos();
     const terminados = todos.filter((t) => ESTADOS_PENDIENTE.includes(t.estadoOperativo));
     setTrabajos(terminados);
@@ -584,7 +589,7 @@ export default function CertificacionesPage() {
                       </div>
                       {/* Info (click para expandir) */}
                       <div className="flex-grow-1 min-w-0" onClick={() => setExpandido(abierto ? null : t.id)}>
-                        <div className="fw-bold text-truncate">
+                        <div className="fw-bold">
                           <i className="bi bi-geo-alt me-1 text-primary"></i>
                           {t.calle1} y {t.calle2}
                         </div>

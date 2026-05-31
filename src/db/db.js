@@ -1,101 +1,33 @@
-import { openDB } from 'idb';
+let _trabajos = [];
 
-const DB_NAME = 'pintura-vial-db';
-const DB_VERSION = 2;
-const STORE = 'trabajos';
-const STORE_MATERIALES = 'materiales';
+export const obtenerTrabajos = async () => [..._trabajos];
 
-async function getDB() {
-  return openDB(DB_NAME, DB_VERSION, {
-    upgrade(db, oldVersion) {
-      if (oldVersion < 1) {
-        const store = db.createObjectStore(STORE, { keyPath: 'id' });
-        store.createIndex('sincronizado', 'sincronizado');
-        store.createIndex('fechaCarga', 'fechaCarga');
-      }
-      if (oldVersion < 2) {
-        db.createObjectStore(STORE_MATERIALES, { keyPath: 'id' });
-      }
-    },
+export const guardarTrabajo = async (t) => {
+  const idx = _trabajos.findIndex((x) => x.id === t.id);
+  if (idx >= 0) _trabajos[idx] = t; else _trabajos.push(t);
+  return t;
+};
+
+export const obtenerTrabajoPorId = async (id) =>
+  _trabajos.find((x) => x.id === id || x._id === id) || null;
+
+export const eliminarTrabajo = async (id) => {
+  _trabajos = _trabajos.filter((x) => x.id !== id && x._id !== id);
+};
+
+export const importarDesdeBackend = async (data) => {
+  _trabajos = data.map((t) => ({ ...t, id: t._id || t.id, sincronizado: true }));
+  return _trabajos;
+};
+
+export const obtenerNoSincronizados = async () =>
+  _trabajos.filter((x) => !x.sincronizado);
+
+export const marcarTodosSincronizados = async (ids) => {
+  ids.forEach((id) => {
+    const t = _trabajos.find((x) => x.id === id);
+    if (t) t.sincronizado = true;
   });
-}
+};
 
-export async function guardarTrabajo(trabajo) {
-  const db = await getDB();
-  await db.put(STORE, trabajo);
-}
-
-export async function obtenerTrabajos() {
-  const db = await getDB();
-  const todos = await db.getAll(STORE);
-  return todos.sort((a, b) => new Date(b.fechaCarga) - new Date(a.fechaCarga));
-}
-
-export async function obtenerTrabajoPorId(id) {
-  const db = await getDB();
-  return db.get(STORE, id);
-}
-
-export async function eliminarTrabajo(id) {
-  const db = await getDB();
-  return db.delete(STORE, id);
-}
-
-export async function obtenerNoSincronizados() {
-  const db = await getDB();
-  const todos = await db.getAll(STORE);
-  return todos.filter((t) => !t.sincronizado);
-}
-
-export async function marcarSincronizado(id) {
-  const db = await getDB();
-  const trabajo = await db.get(STORE, id);
-  if (!trabajo) return;
-  await db.put(STORE, { ...trabajo, sincronizado: true });
-}
-
-export async function marcarTodosSincronizados(ids) {
-  const db = await getDB();
-  const tx = db.transaction(STORE, 'readwrite');
-  await Promise.all(
-    ids.map(async (id) => {
-      const trabajo = await tx.store.get(id);
-      if (trabajo) await tx.store.put({ ...trabajo, sincronizado: true });
-    })
-  );
-  await tx.done;
-}
-
-// ============= SYNC DESDE BACKEND =============
-
-// Importa trabajos del backend al IndexedDB local.
-// Usa idLocal como clave. No sobreescribe items pendientes de sync.
-export async function importarDesdeBackend(trabajosBackend) {
-  const db = await getDB();
-  const tx = db.transaction(STORE, 'readwrite');
-  for (const t of trabajosBackend) {
-    if (!t.idLocal) continue;
-    const existente = await tx.store.get(t.idLocal);
-    if (existente && !existente.sincronizado) continue; // respeta cambios locales pendientes
-    await tx.store.put({ ...t, id: t.idLocal, sincronizado: true });
-  }
-  await tx.done;
-}
-
-// ============= MATERIALES =============
-
-export async function obtenerMateriales() {
-  const db = await getDB();
-  const todos = await db.getAll(STORE_MATERIALES);
-  return todos.sort((a, b) => a.nombre.localeCompare(b.nombre));
-}
-
-export async function guardarMaterial(material) {
-  const db = await getDB();
-  await db.put(STORE_MATERIALES, material);
-}
-
-export async function eliminarMaterial(id) {
-  const db = await getDB();
-  await db.delete(STORE_MATERIALES, id);
-}
+export const obtenerMateriales = async () => [];
