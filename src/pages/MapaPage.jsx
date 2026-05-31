@@ -166,8 +166,8 @@ export default function MapaPage() {
                 <CircleMarker
                   key={t._id || t.id}
                   center={[t.lat, t.lng]}
-                  radius={10}
-                  pathOptions={{ color: pinColor, fillColor: pinColor, fillOpacity: 0.9, weight: 2 }}
+                  radius={4}
+                  pathOptions={{ color: pinColor, fillColor: pinColor, fillOpacity: 0.85, weight: 1 }}
                 >
                   <Popup maxWidth={280} className="pintura-popup">
                     <div style={{ minWidth: 240 }}>
