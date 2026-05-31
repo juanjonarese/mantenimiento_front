@@ -13,7 +13,7 @@ const NOMBRES_SUGERIDOS = [
   'Pintura blanca', 'Pintura amarilla', 'Microesferas',
   'Diluyente', 'Termoplástico', 'Otros',
 ];
-const MODAL_VACIO = { codigo: '', nombre: '', stock: '', unidad: 'litros', tiposTarea: [] };
+const MODAL_VACIO = { codigo: '', nombre: '', stock: '', unidad: 'litros', tamano: '', tiposTarea: [] };
 
 function StockBadge({ stock }) {
   const cls = stock <= 0 ? 'bg-danger' : stock < 10 ? 'bg-warning text-dark' : 'bg-success';
@@ -78,6 +78,7 @@ export default function MaterialesPage() {
       nombre: mat.nombre,
       stock: String(mat.stock),
       unidad: mat.unidad,
+      tamano: mat.tamano || '',
       tiposTarea: mat.tiposTarea || [],
     });
     setError('');
@@ -109,6 +110,7 @@ export default function MaterialesPage() {
         nombre:     form.nombre.trim(),
         stock:      parseFloat(form.stock),
         unidad:     form.unidad,
+        tamano:     form.tamano.trim(),
         tiposTarea: form.tiposTarea,
       };
       if (editId) {
@@ -184,6 +186,7 @@ export default function MaterialesPage() {
                   <tr>
                     <th className="d-none d-sm-table-cell">Código</th>
                     <th>Material</th>
+                    <th className="d-none d-md-table-cell">Tamaño / unidad</th>
                     <th className="text-center">Stock</th>
                     <th className="d-none d-sm-table-cell">Unidad</th>
                     <th className="text-end">Acciones</th>
@@ -201,6 +204,10 @@ export default function MaterialesPage() {
                         <span className="fw-semibold">{mat.nombre}</span>
                         {mat.codigo && <span className="d-sm-none ms-2 badge bg-secondary fw-normal">{mat.codigo}</span>}
                         <span className="d-sm-none ms-2 text-muted small">{mat.unidad}</span>
+                        {mat.tamano && <span className="d-md-none ms-2 text-muted small">· {mat.tamano}</span>}
+                      </td>
+                      <td className="d-none d-md-table-cell text-muted">
+                        {mat.tamano || <span className="text-muted">—</span>}
                       </td>
                       <td className="text-center">
                         <StockBadge stock={mat.stock} />
@@ -272,6 +279,12 @@ export default function MaterialesPage() {
                       {UNIDADES.map((u) => <option key={u}>{u}</option>)}
                     </select>
                   </div>
+                </div>
+                <div className="mt-3">
+                  <label className="form-label fw-semibold">Tamaño por unidad</label>
+                  <input type="text" className="form-control" name="tamano"
+                    value={form.tamano} onChange={handleChange} placeholder="Ej: 25 kg, 20 litros, 5 kg" />
+                  <div className="form-text">Contenido o peso de cada unidad en stock.</div>
                 </div>
                 <div className="mt-3 border-top pt-3">
                   <label className="form-label fw-semibold small">
