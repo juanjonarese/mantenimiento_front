@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
+import * as XLSX from 'xlsx';
 import { obtenerTrabajos, eliminarTrabajo, importarDesdeBackend } from '../db/db';
 import { obtenerTrabajosBackend, eliminarTrabajoBackend } from '../services/api';
 import { COLORES_ESTADO_OP, COLORES_ESTADO_ADMIN } from '../constants';
@@ -91,6 +92,32 @@ export default function ListaPage() {
     return t.materiales?.find((m) => m.nombre?.toLowerCase().includes(n))?.cantidad || 0;
   };
 
+  function exportarExcel() {
+    const filas = filtrados.map((t) => ({
+      'Fecha':              new Date(t.fechaCarga).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+      'Calle 1':            t.calle1,
+      'Calle 2':            t.calle2,
+      'Sendas m²':          getSup(t, 'SENDAS')   || '',
+      'Rampas m²':          getSup(t, 'RAMPAS')   || '',
+      'Cordones m²':        getSup(t, 'CORDONES') || '',
+      'Sup. total m²':      t.superficie || '',
+      'B. Termoplástica':   getMat(t, 'termoplást') || '',
+      'B. Microesferas':    getMat(t, 'microesfera') || '',
+      'Imprimación (l)':    getMat(t, 'imprimac')    || '',
+      'Pintura Acrílica (l)': getMat(t, 'acrílica') || '',
+      'Estado operativo':   t.estadoOperativo,
+      'Certificación':      t.estadoAdmin,
+      'Usuario':            t.usuario || '',
+      'Observaciones':      t.observaciones || '',
+      'Latitud':            t.lat || '',
+      'Longitud':           t.lng || '',
+    }));
+    const ws = XLSX.utils.json_to_sheet(filas);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Trabajos');
+    XLSX.writeFile(wb, `trabajos_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  }
+
   return (
     <div className="lista-page">
 
@@ -110,6 +137,15 @@ export default function ListaPage() {
           </div>
           {esAdmin && (
             <div className="d-flex gap-2">
+              <button
+                className="btn btn-outline-success d-flex align-items-center gap-2"
+                onClick={exportarExcel}
+                disabled={filtrados.length === 0}
+                title="Exportar lista actual a Excel"
+              >
+                <i className="bi bi-download"></i>
+                <span className="d-none d-sm-inline">Exportar Excel</span>
+              </button>
               <button
                 className="btn btn-outline-success d-flex align-items-center gap-2"
                 onClick={() => setMostrarImportar(true)}
