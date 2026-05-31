@@ -18,6 +18,13 @@ const COLOR_PIN = {
 
 const COLORES_PIE = ['#0d6efd','#198754','#ffc107','#dc3545','#6f42c1','#0dcaf0','#fd7e14','#6c757d'];
 
+const TIPO_ALIAS = {
+  'Senda peatonal': 'SENDAS', 'Sendas': 'SENDAS', 'SENDAS': 'SENDAS',
+  'Rampa': 'RAMPAS', 'Rampas': 'RAMPAS', 'RAMPAS': 'RAMPAS',
+  'Cordón': 'CORDONES', 'Cordon': 'CORDONES', 'Cordones': 'CORDONES', 'CORDONES': 'CORDONES',
+};
+const normTipoGlobal = (t) => TIPO_ALIAS[t] || t;
+
 function getPinColor(t) {
   if (t.estadoAdmin === 'Certificado') return COLOR_PIN['Certificado'];
   if (t.estadoOperativo === 'Terminado' || t.estadoOperativo === 'Finalizado') return COLOR_PIN['Terminado'];
@@ -62,6 +69,7 @@ export default function PanelPage() {
     setError('');
     try {
       const { material, ...backendFiltros } = filtros;
+      if (backendFiltros.tipoTrabajo) backendFiltros.tipoTrabajo = normTipoGlobal(backendFiltros.tipoTrabajo);
       const params = Object.fromEntries(Object.entries(backendFiltros).filter(([, v]) => v !== ''));
       const [{ trabajos: t }, { estadisticas: e }, catRes, consumoRes] = await Promise.all([
         obtenerTrabajosBackend(params),
@@ -100,12 +108,17 @@ export default function PanelPage() {
     return Object.entries(mapa).slice(-20).map(([fecha, cantidad]) => ({ fecha, cantidad }));
   })();
 
-  const porTipo = TIPOS_TRABAJO.map((tipo) => ({
-    name: tipo,
-    value: trabajos.filter((t) =>
-      t.items ? t.items.some((i) => i.tipoTrabajo === tipo) : t.tipoTrabajo === tipo
-    ).length,
-  })).filter((d) => d.value > 0);
+  const porTipo = (() => {
+    const mapa = {};
+    trabajos.forEach((t) => {
+      if (t.items?.length) {
+        t.items.forEach((item) => { if (item.tipoTrabajo) mapa[item.tipoTrabajo] = (mapa[item.tipoTrabajo] || 0) + 1; });
+      } else if (t.tipoTrabajo) {
+        mapa[t.tipoTrabajo] = (mapa[t.tipoTrabajo] || 0) + 1;
+      }
+    });
+    return Object.entries(mapa).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+  })();
 
   const porEstado = [
     { name: 'Sin iniciar', value: trabajos.filter((t) => t.estadoOperativo === 'Sin iniciar').length, color: '#dc3545' },
@@ -140,25 +153,82 @@ export default function PanelPage() {
       .sort((a, b) => b.cantidad - a.cantidad);
   })();
 
-  const todosItems = trabajos.flatMap((t) => t.items || []);
+  const normTipo = normTipoGlobal;
+
+  // Extrae el número y la unidad de un string de tamaño (ej: "25 kg" → { num: 25, unit: "kg" })
+  const parseTamano = (str) => {
+    if (!str) return { num: null, unit: '' };
+    const match = str.match(/^([\d.,]+)\s*(.*)$/);
+    if (!match) return { num: null, unit: '' };
+    return { num: parseFloat(match[1].replace(',', '.')), unit: match[2].trim() };
+  };
+
+  // Normaliza string: minúsculas, sin acentos (rango NFD U+0300-U+036F)
+  const normStr = (s) => (s || '').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+  // Dos nombres de material coinciden si son iguales OR si la palabra más larga
+  // del nombre del catálogo (≥ 6 chars) está contenida en el nombre del trabajo
+  const matchMat = (catalogName, trabajoName) => {
+    const na = normStr(catalogName);
+    const nb = normStr(trabajoName);
+    if (na === nb) return true;
+    const longestKey = na.split(/\s+/)
+      .filter((w) => w.length >= 6)
+      .sort((x, y) => y.length - x.length)[0];
+    return longestKey ? nb.includes(longestKey) : false;
+  };
 
   const rendimientoMateriales = catalogo
     .filter((mat) => mat.tiposTarea && mat.tiposTarea.length > 0)
     .map((mat) => {
-      const consumido = consumoTurnos.find((c) => c.nombre === mat.nombre)?.cantidad || 0;
-      const m2 = todosItems
-        .filter((item) => mat.tiposTarea.includes(item.tipoTrabajo))
-        .reduce((sum, item) => sum + (item.superficie || 0), 0);
+      const tiposNorm = mat.tiposTarea.map(normTipo);
+      // Busca en consumoMateriales usando matching flexible por palabras clave
+      const matched = consumoMateriales.filter((c) => matchMat(mat.nombre, c.nombre));
+      const consumido = matched.reduce((s, c) => s + c.cantidad, 0);
+      const consumidoUnidad = matched[0]?.unidad || mat.unidad;
+      const m2 = trabajos.reduce((sum, t) => {
+        if (t.items?.length) {
+          return sum + t.items
+            .filter((item) => tiposNorm.includes(normTipo(item.tipoTrabajo)))
+            .reduce((s, item) => s + (item.superficie || 0), 0);
+        }
+        return sum + (tiposNorm.includes(normTipo(t.tipoTrabajo)) ? (t.superficie || 0) : 0);
+      }, 0);
+      const { num: tamanoNum, unit: tamanoUnit } = parseTamano(mat.tamano);
+      // Si el consumo está en unidades (bolsas) → multiplicar por tamano para obtener kg/l reales
+      // Si el consumo está en litros/kg → dividir por tamano para obtener cantidad de envases
+      let cantidadReal, unidadReal;
+      if (tamanoNum) {
+        if (consumidoUnidad === 'u') {
+          cantidadReal = consumido * tamanoNum;
+          unidadReal = tamanoUnit || mat.unidad;
+        } else {
+          cantidadReal = consumido / tamanoNum;
+          unidadReal = 'u';
+        }
+      } else {
+        cantidadReal = consumido;
+        unidadReal = consumidoUnidad;
+      }
+      // Para materiales en 'u' (bolsas): ratio = cantidadReal(kg) / m²  → kg/m²
+      // Para materiales en 'l'       : ratio = consumido(l)    / m²  → l/m²
+      const ratioBase = consumidoUnidad === 'u' ? cantidadReal : consumido;
+      const ratioUnidad = consumidoUnidad === 'u' ? (tamanoUnit || mat.unidad) : consumidoUnidad;
       return {
         nombre: mat.nombre,
         unidad: mat.unidad,
+        tamano: mat.tamano || '',
+        tamanoNum,
+        consumidoUnidad,
         tiposTarea: mat.tiposTarea,
         consumido: parseFloat(consumido.toFixed(3)),
+        cantidadReal: parseFloat(cantidadReal.toFixed(3)),
+        unidadReal,
         m2: parseFloat(m2.toFixed(2)),
-        ratio: m2 > 0 ? parseFloat((consumido / m2).toFixed(4)) : null,
+        ratio: m2 > 0 && ratioBase > 0 ? parseFloat((ratioBase / m2).toFixed(4)) : null,
+        ratioUnidad,
       };
-    })
-;
+    });
 
   const porDiaSuperficie = (() => {
     const mapa = {};
@@ -218,6 +288,22 @@ export default function PanelPage() {
 
   const hayFiltros = Object.values(filtros).some((v) => v !== '');
   const superficieTotal = trabajos.reduce((acc, t) => acc + (t.superficie || 0), 0);
+
+  const m2PorTipo = (() => {
+    const mapa = {};
+    trabajos.forEach((t) => {
+      if (t.items?.length) {
+        t.items.forEach((item) => {
+          if (item.tipoTrabajo) mapa[item.tipoTrabajo] = (mapa[item.tipoTrabajo] || 0) + (item.superficie || 0);
+        });
+      } else if (t.tipoTrabajo) {
+        mapa[t.tipoTrabajo] = (mapa[t.tipoTrabajo] || 0) + (t.superficie || 0);
+      }
+    });
+    return Object.entries(mapa)
+      .map(([tipo, m2]) => ({ tipo, m2: parseFloat(m2.toFixed(1)) }))
+      .sort((a, b) => b.m2 - a.m2);
+  })();
 
   return (
     <div className="panel-page">
@@ -290,7 +376,7 @@ export default function PanelPage() {
                 <select className="form-select form-select-sm" name="tipoTrabajo"
                   value={filtros.tipoTrabajo} onChange={handleFiltro}>
                   <option value="">Todos</option>
-                  {TIPOS_TRABAJO.map((t) => <option key={t}>{t}</option>)}
+                  {[...new Set(TIPOS_TRABAJO.map(normTipoGlobal))].map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
               <div className="col-6 col-md-3 col-lg-2">
@@ -328,7 +414,23 @@ export default function PanelPage() {
         {/* ── STATS ── */}
         <div className="row g-3 mb-4">
           <StatCard label="Total trabajos" value={trabajos.length} icon="collection" color="primary" />
-          <StatCard label="Superficie total" value={`${superficieTotal.toFixed(0)} m²`} icon="rulers" color="info" />
+          <div className="col-6 col-md-4 col-lg-2">
+            <div className="card border-0 h-100" style={{ borderLeft: '4px solid var(--bs-info)' }}>
+              <div className="card-body py-3 px-3">
+                <div className="d-flex align-items-center gap-2 mb-1">
+                  <i className="bi bi-rulers text-info"></i>
+                  <span className="small text-muted">Superficie total</span>
+                </div>
+                <div className="fw-bold fs-4 text-info">{superficieTotal.toFixed(0)} m²</div>
+                {m2PorTipo.map(({ tipo, m2 }) => (
+                  <div key={tipo} className="d-flex justify-content-between small text-muted mt-1">
+                    <span>{tipo}</span>
+                    <span className="fw-semibold">{m2.toLocaleString('es-AR')} m²</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
           <StatCard label="Terminados" value={trabajos.filter((t) => ['Terminado','Finalizado'].includes(t.estadoOperativo)).length} icon="check-circle" color="success" />
           <StatCard label="En proceso" value={trabajos.filter((t) => t.estadoOperativo === 'En proceso').length} icon="hourglass-split" color="warning" />
           <StatCard label="Sin iniciar" value={trabajos.filter((t) => t.estadoOperativo === 'Sin iniciar').length} icon="pause-circle" color="danger" />
@@ -569,9 +671,31 @@ export default function PanelPage() {
                           ))}
                         </td>
                         <td className="small text-end">
-                          {r.consumido > 0
-                            ? <span className="fw-bold text-primary">{r.consumido.toLocaleString('es-AR')} {r.unidad}</span>
-                            : <span className="text-muted">—</span>}
+                          {r.consumido > 0 ? (
+                            <div>
+                              {r.consumidoUnidad === 'u' ? (
+                                // Bolsas: primario = bolsas, secundario = kg/l reales
+                                <>
+                                  <span className="fw-bold text-primary">{r.consumido.toLocaleString('es-AR')} {r.unidad}</span>
+                                  {r.tamanoNum && (
+                                    <div className="text-muted" style={{ fontSize: 11 }}>
+                                      = {r.cantidadReal.toLocaleString('es-AR')} {r.unidadReal}
+                                    </div>
+                                  )}
+                                </>
+                              ) : (
+                                // Litros: primario = envases (÷ tamano), secundario = litros reales
+                                <>
+                                  <span className="fw-bold text-primary">{r.cantidadReal.toLocaleString('es-AR')} u</span>
+                                  {r.tamanoNum && (
+                                    <div className="text-muted" style={{ fontSize: 11 }}>
+                                      = {r.consumido.toLocaleString('es-AR')} {r.consumidoUnidad}
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          ) : <span className="text-muted">—</span>}
                         </td>
                         <td className="small text-end">
                           {r.m2 > 0
@@ -582,7 +706,7 @@ export default function PanelPage() {
                           {r.ratio !== null
                             ? (
                               <span className="badge bg-success fs-6 px-2 py-1">
-                                {r.ratio.toLocaleString('es-AR')} {r.unidad}/m²
+                                {r.ratio.toLocaleString('es-AR')} {r.ratioUnidad}/m²
                               </span>
                             )
                             : <span className="text-muted small">Sin datos aún</span>}
@@ -631,8 +755,8 @@ export default function PanelPage() {
                     attribution='&copy; OpenStreetMap'
                   />
                   {trabajos.filter(t => t.lat && t.lng).map((t) => (
-                    <CircleMarker key={t._id} center={[t.lat, t.lng]} radius={8}
-                      pathOptions={{ color: getPinColor(t), fillColor: getPinColor(t), fillOpacity: 0.85, weight: 2 }}>
+                    <CircleMarker key={t._id} center={[t.lat, t.lng]} radius={4}
+                      pathOptions={{ color: getPinColor(t), fillColor: getPinColor(t), fillOpacity: 0.85, weight: 1 }}>
                       <Popup maxWidth={220}>
                         <div className="fw-semibold">{t.calle1} y {t.calle2}</div>
                         <div className="small text-muted">
