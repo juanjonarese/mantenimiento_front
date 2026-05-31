@@ -109,7 +109,7 @@ export default function EditarTrabajoModal({ trabajo, onClose, onGuardado }) {
 
       await actualizarTrabajoBackend(trabajo._id, datos);
       await guardarTrabajo({ ...trabajo, ...datos, id: trabajo.id || trabajo._id });
-      onGuardado();
+      await onGuardado();
       onClose();
     } catch (e) {
       setError(e.message || 'Error al guardar');

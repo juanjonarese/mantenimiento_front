@@ -134,9 +134,10 @@ export const obtenerTrabajosBackend = async (filtros = {}) => {
 };
 
 export const actualizarTrabajoBackend = async (id, datos) => {
+  const token = localStorage.getItem("token");
   const response = await fetch(`${API_URL}/trabajos/${id}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify(datos),
   });
   return handleResponse(response);
