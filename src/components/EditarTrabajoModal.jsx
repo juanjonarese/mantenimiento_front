@@ -1,7 +1,26 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { actualizarTrabajoBackend } from '../services/api';
 import { guardarTrabajo } from '../db/db';
 import { ESTADOS_OPERATIVO, ESTADOS_ADMIN } from '../constants';
+
+const iconoMarcador = new L.Icon({
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
+
+function MoverMapa({ lat, lng }) {
+  const map = useMap();
+  useEffect(() => {
+    if (lat && lng && !isNaN(lat) && !isNaN(lng)) map.setView([lat, lng], 17);
+  }, [lat, lng]);
+  return null;
+}
 
 function numVal(v) {
   const n = parseFloat(String(v ?? '').replace(',', '.'));
@@ -17,29 +36,44 @@ function getSup(items, tipo) {
   return items?.find((i) => i.tipoTrabajo === tipo)?.superficie ?? 0;
 }
 
+const DEFAULT_LAT = -26.8241;
+const DEFAULT_LNG = -65.2226;
+
 export default function EditarTrabajoModal({ trabajo, onClose, onGuardado }) {
+  const lat0 = trabajo.lat || DEFAULT_LAT;
+  const lng0 = trabajo.lng || DEFAULT_LNG;
+
   const [form, setForm] = useState({
     fechaCarga: trabajo.fechaCarga
       ? new Date(trabajo.fechaCarga).toISOString().split('T')[0]
       : '',
-    calle1: trabajo.calle1 || '',
-    calle2: trabajo.calle2 || '',
-    sendas:       getSup(trabajo.items, 'SENDAS'),
-    rampas:       getSup(trabajo.items, 'RAMPAS'),
-    cordones:     getSup(trabajo.items, 'CORDONES'),
-    bolsasTermo:  getMat(trabajo.materiales, 'termoplást'),
-    bolsasMicro:  getMat(trabajo.materiales, 'microesfera'),
-    litrosImprim: getMat(trabajo.materiales, 'imprimac'),
-    litrosPintura:getMat(trabajo.materiales, 'acrílica'),
+    calle1:        trabajo.calle1 || '',
+    calle2:        trabajo.calle2 || '',
+    lat:           lat0,
+    lng:           lng0,
+    sendas:        getSup(trabajo.items, 'SENDAS'),
+    rampas:        getSup(trabajo.items, 'RAMPAS'),
+    cordones:      getSup(trabajo.items, 'CORDONES'),
+    bolsasTermo:   getMat(trabajo.materiales, 'termoplást'),
+    bolsasMicro:   getMat(trabajo.materiales, 'microesfera'),
+    litrosImprim:  getMat(trabajo.materiales, 'imprimac'),
+    litrosPintura: getMat(trabajo.materiales, 'acrílica'),
     estadoOperativo: trabajo.estadoOperativo || 'Sin iniciar',
     estadoAdmin:     trabajo.estadoAdmin     || 'Sin certificar',
     observaciones:   trabajo.observaciones   || '',
   });
+
   const [guardando, setGuardando] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError]         = useState('');
+  const mapaKey = useRef(`${lat0},${lng0}`);
 
   function set(field, val) {
     setForm((prev) => ({ ...prev, [field]: val }));
+  }
+
+  function handleLatLngInput(field, val) {
+    const n = parseFloat(val.replace(',', '.'));
+    set(field, isNaN(n) ? val : n);
   }
 
   async function handleGuardar() {
@@ -59,15 +93,17 @@ export default function EditarTrabajoModal({ trabajo, onClose, onGuardado }) {
       if (numVal(form.litrosPintura) > 0) materiales.push({ nombre: 'Pintura acrílica',      cantidad: numVal(form.litrosPintura), unidad: 'l' });
 
       const datos = {
-        fechaCarga:      form.fechaCarga ? new Date(form.fechaCarga) : trabajo.fechaCarga,
-        calle1:          form.calle1.trim(),
-        calle2:          form.calle2.trim(),
+        fechaCarga:        form.fechaCarga ? new Date(form.fechaCarga) : trabajo.fechaCarga,
+        calle1:            form.calle1.trim(),
+        calle2:            form.calle2.trim(),
+        lat:               numVal(form.lat),
+        lng:               numVal(form.lng),
         items,
         materiales,
-        superficie:      numVal(form.sendas) + numVal(form.rampas) + numVal(form.cordones),
-        estadoOperativo: form.estadoOperativo,
-        estadoAdmin:     form.estadoAdmin,
-        observaciones:   form.observaciones,
+        superficie:        numVal(form.sendas) + numVal(form.rampas) + numVal(form.cordones),
+        estadoOperativo:   form.estadoOperativo,
+        estadoAdmin:       form.estadoAdmin,
+        observaciones:     form.observaciones,
         fechaModificacion: new Date(),
       };
 
@@ -82,10 +118,13 @@ export default function EditarTrabajoModal({ trabajo, onClose, onGuardado }) {
     }
   }
 
+  const latNum = parseFloat(form.lat) || DEFAULT_LAT;
+  const lngNum = parseFloat(form.lng) || DEFAULT_LNG;
+
   return (
     <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1055 }}
       onClick={(e) => { if (e.target === e.currentTarget && !guardando) onClose(); }}>
-      <div className="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
+      <div className="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered">
         <div className="modal-content">
 
           <div className="modal-header">
@@ -113,6 +152,62 @@ export default function EditarTrabajoModal({ trabajo, onClose, onGuardado }) {
                 <label className="form-label small fw-semibold">Calle 2</label>
                 <input type="text" className="form-control form-control-sm"
                   value={form.calle2} onChange={(e) => set('calle2', e.target.value)} />
+              </div>
+            </div>
+
+            {/* Mapa */}
+            <p className="fw-semibold small text-muted mb-1">
+              <i className="bi bi-geo-alt me-1"></i>Ubicación — arrastrá el marcador para corregir
+            </p>
+            <div style={{ height: 280, borderRadius: 8, overflow: 'hidden', marginBottom: 8 }}>
+              <MapContainer
+                key={mapaKey.current}
+                center={[latNum, lngNum]}
+                zoom={17}
+                style={{ height: '100%', width: '100%' }}
+                scrollWheelZoom={false}
+              >
+                <TileLayer
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution='&copy; OpenStreetMap'
+                />
+                <Marker
+                  position={[latNum, lngNum]}
+                  draggable={true}
+                  icon={iconoMarcador}
+                  eventHandlers={{
+                    dragend: (e) => {
+                      const pos = e.target.getLatLng();
+                      set('lat', parseFloat(pos.lat.toFixed(7)));
+                      set('lng', parseFloat(pos.lng.toFixed(7)));
+                    },
+                  }}
+                />
+                <MoverMapa lat={latNum} lng={lngNum} />
+              </MapContainer>
+            </div>
+
+            {/* Inputs lat/lng manuales */}
+            <div className="row g-2 mb-3">
+              <div className="col-6">
+                <label className="form-label small fw-semibold">Latitud</label>
+                <input
+                  type="text"
+                  className="form-control form-control-sm font-monospace"
+                  value={form.lat}
+                  onChange={(e) => handleLatLngInput('lat', e.target.value)}
+                  placeholder="-26.8286"
+                />
+              </div>
+              <div className="col-6">
+                <label className="form-label small fw-semibold">Longitud</label>
+                <input
+                  type="text"
+                  className="form-control form-control-sm font-monospace"
+                  value={form.lng}
+                  onChange={(e) => handleLatLngInput('lng', e.target.value)}
+                  placeholder="-65.2026"
+                />
               </div>
             </div>
 
