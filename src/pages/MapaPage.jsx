@@ -69,7 +69,11 @@ function FitBounds({ trabajos }) {
 export default function MapaPage() {
   const [trabajos, setTrabajos] = useState([]);
   const [filtro, setFiltro] = useState('todos');
-  const [filtroCliente, setFiltroCliente] = useState('');
+  const esCliente = localStorage.getItem('rol') === 'cliente';
+  const clientePropio = localStorage.getItem('clienteNombre') || '';
+  const [filtroCliente, setFiltroCliente] = useState(() =>
+    localStorage.getItem('rol') === 'cliente' ? (localStorage.getItem('clienteNombre') || '') : ''
+  );
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
 
@@ -124,17 +128,23 @@ export default function MapaPage() {
           </span>
         )}
         <div className="ms-auto d-flex gap-2 flex-wrap align-items-center">
-          <select
-            className="form-select form-select-sm"
-            style={{ width: 'auto', minWidth: 140 }}
-            value={filtroCliente}
-            onChange={(e) => setFiltroCliente(e.target.value)}
-          >
-            <option value="">Todos los clientes</option>
-            {[...new Set(conUbicacion.map((t) => t.clienteNombre).filter(Boolean))].sort().map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
+          {esCliente ? (
+            <span className="badge bg-primary px-3 py-2">
+              <i className="bi bi-person-vcard me-1"></i>{clientePropio}
+            </span>
+          ) : (
+            <select
+              className="form-select form-select-sm"
+              style={{ width: 'auto', minWidth: 140 }}
+              value={filtroCliente}
+              onChange={(e) => setFiltroCliente(e.target.value)}
+            >
+              <option value="">Todos los clientes</option>
+              {[...new Set(conUbicacion.map((t) => t.clienteNombre).filter(Boolean))].sort().map((c) => (
+                <option key={c}>{c}</option>
+              ))}
+            </select>
+          )}
           <div className="d-flex gap-1 flex-wrap">
             {FILTROS_MAPA.map(({ key, label, color }) => (
               <button

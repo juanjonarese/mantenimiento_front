@@ -9,13 +9,18 @@ import ImportarExcelModal from '../components/ImportarExcelModal';
 import EditarTrabajoModal from '../components/EditarTrabajoModal';
 
 export default function ListaPage() {
-  const esAdmin = localStorage.getItem('rol') === 'admin';
+  const rol = localStorage.getItem('rol');
+  const esAdmin = rol === 'admin';
+  const esCliente = rol === 'cliente';
+  const clientePropio = localStorage.getItem('clienteNombre') || '';
 
   const [trabajos, setTrabajos] = useState([]);
   const [busqueda, setBusqueda] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('');
   const [filtroCertif, setFiltroCertif] = useState('');
-  const [filtroCliente, setFiltroCliente] = useState('');
+  const [filtroCliente, setFiltroCliente] = useState(() =>
+    localStorage.getItem('rol') === 'cliente' ? (localStorage.getItem('clienteNombre') || '') : ''
+  );
   const [sincronizando, setSincronizando] = useState(false);
   const [cargando, setCargando] = useState(true);
   const [mostrarImportar, setMostrarImportar] = useState(false);
@@ -161,6 +166,11 @@ export default function ListaPage() {
               </Link>
             </div>
           )}
+          {esCliente && clientePropio && (
+            <span className="badge bg-primary fs-6 px-3 py-2">
+              <i className="bi bi-person-vcard me-1"></i>{clientePropio}
+            </span>
+          )}
         </div>
 
         {/* Filtros */}
@@ -201,15 +211,17 @@ export default function ListaPage() {
               <option>Rechazado</option>
             </select>
           </div>
-          <div className="col-6 col-md-2">
-            <select className="form-select form-select-sm" value={filtroCliente}
-              onChange={(e) => { setFiltroCliente(e.target.value); setPagina(1); }}>
-              <option value="">Todos los clientes</option>
-              {[...new Set(trabajos.map((t) => t.clienteNombre).filter(Boolean))].sort().map((c) => (
-                <option key={c}>{c}</option>
-              ))}
-            </select>
-          </div>
+          {!esCliente && (
+            <div className="col-6 col-md-2">
+              <select className="form-select form-select-sm" value={filtroCliente}
+                onChange={(e) => { setFiltroCliente(e.target.value); setPagina(1); }}>
+                <option value="">Todos los clientes</option>
+                {[...new Set(trabajos.map((t) => t.clienteNombre).filter(Boolean))].sort().map((c) => (
+                  <option key={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       </div>
 

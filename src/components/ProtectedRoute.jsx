@@ -10,6 +10,7 @@ const ProtectedRoute = ({ children, roles }) => {
       const home = rol === 'supervisor' ? '/turno' : '/lista';
       return <Navigate to={home} replace />;
     }
+
   }
 
   return children;

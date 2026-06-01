@@ -40,7 +40,9 @@ function Layout({ children, fullWidth = false }) {
 
 function RoleRedirect() {
   const rol = localStorage.getItem('rol');
-  return <Navigate to={rol === 'admin' ? '/lista' : '/turno'} replace />;
+  if (rol === 'admin') return <Navigate to="/lista" replace />;
+  if (rol === 'cliente') return <Navigate to="/lista" replace />;
+  return <Navigate to="/turno" replace />;
 }
 
 function App() {
@@ -56,7 +58,7 @@ function App() {
           </Layout></ProtectedRoute>
         } />
         <Route path="/mapa" element={
-          <ProtectedRoute roles={['admin']}><Layout fullWidth>
+          <ProtectedRoute roles={['admin','cliente']}><Layout fullWidth>
             <Suspense fallback={<Spinner />}><MapaPage /></Suspense>
           </Layout></ProtectedRoute>
         } />
@@ -103,7 +105,7 @@ function App() {
 
         {/* Admin only */}
         <Route path="/editar/:id" element={<ProtectedRoute roles={['admin','supervisor']}><Layout><NuevoTrabajoPage /></Layout></ProtectedRoute>} />
-        <Route path="/lista" element={<ProtectedRoute roles={['admin','supervisor']}><Layout fullWidth><ListaPage /></Layout></ProtectedRoute>} />
+        <Route path="/lista" element={<ProtectedRoute roles={['admin','supervisor','cliente']}><Layout fullWidth><ListaPage /></Layout></ProtectedRoute>} />
         <Route path="/detalle/:id" element={<ProtectedRoute roles={['admin','supervisor']}><Layout><DetallePage /></Layout></ProtectedRoute>} />
 
         <Route path="*" element={<RoleRedirect />} />

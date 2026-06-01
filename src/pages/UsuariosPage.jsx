@@ -92,7 +92,13 @@ const UsuariosPage = () => {
           <select id="swal-rol" class="form-select">
             <option value="supervisor" ${usuario.rol === 'supervisor' || usuario.rol === 'usuario' ? 'selected' : ''}>Supervisor</option>
             <option value="admin" ${usuario.rol === 'admin' ? 'selected' : ''}>Administrador</option>
+            <option value="cliente" ${usuario.rol === 'cliente' ? 'selected' : ''}>Cliente</option>
           </select>
+        </div>
+        <div class="mb-3 text-start" id="swal-cliente-wrap" style="display:${usuario.rol === 'cliente' ? 'block' : 'none'}">
+          <label class="form-label fw-semibold">Nombre del cliente *</label>
+          <input id="swal-clienteNombre" class="form-control" value="${usuario.clienteNombre || ''}" placeholder="Nombre exacto del cliente">
+          <small class="text-muted">Debe coincidir exactamente con el nombre en la sección Clientes.</small>
         </div>
         <hr>
         <div class="mb-3 text-start">
@@ -106,7 +112,13 @@ const UsuariosPage = () => {
           <div id="swal-match" class="small mt-1"></div>
         </div>
       `,
-      didOpen: agregarValidacionConfirmacion,
+      didOpen: () => {
+        agregarValidacionConfirmacion();
+        document.getElementById('swal-rol')?.addEventListener('change', (e) => {
+          const wrap = document.getElementById('swal-cliente-wrap');
+          if (wrap) wrap.style.display = e.target.value === 'cliente' ? 'block' : 'none';
+        });
+      },
       focusConfirm: false,
       showCancelButton: true,
       confirmButtonColor: "#0d6efd",
@@ -119,22 +131,24 @@ const UsuariosPage = () => {
         const apellido = document.getElementById("swal-apellido").value.trim();
         const email = document.getElementById("swal-email").value.trim();
         const rol = document.getElementById("swal-rol").value;
+        const clienteNombre = document.getElementById("swal-clienteNombre")?.value.trim() || '';
         const password = document.getElementById("swal-password").value;
         const password2 = document.getElementById("swal-password2").value;
 
         if (!nombre || !apellido || !email) return Swal.showValidationMessage("Completá los campos obligatorios") && false;
         if (!EMAIL_REGEX.test(email)) return Swal.showValidationMessage("Email inválido") && false;
+        if (rol === 'cliente' && !clienteNombre) return Swal.showValidationMessage("Ingresá el nombre del cliente") && false;
         if (password) {
           if (!PASSWORD_REGEX.test(password)) return Swal.showValidationMessage("Contraseña inválida: mayúscula + letras + números, mínimo 6 caracteres") && false;
           if (password !== password2) return Swal.showValidationMessage("Las contraseñas no coinciden") && false;
         }
-        return { nombre, apellido, email, rol, password };
+        return { nombre, apellido, email, rol, clienteNombre, password };
       },
     });
 
     if (!value) return;
     try {
-      const datos = { nombre: value.nombre, apellido: value.apellido, email: value.email, rol: value.rol };
+      const datos = { nombre: value.nombre, apellido: value.apellido, email: value.email, rol: value.rol, clienteNombre: value.clienteNombre || '' };
       if (value.password) datos.password = value.password;
       await actualizarUsuario(usuario._id, datos);
       Swal.fire({ icon: "success", title: "Actualizado", timer: 1500, showConfirmButton: false });
@@ -165,7 +179,13 @@ const UsuariosPage = () => {
           <select id="swal-rol" class="form-select">
             <option value="supervisor">Supervisor</option>
             <option value="admin">Administrador</option>
+            <option value="cliente">Cliente</option>
           </select>
+        </div>
+        <div class="mb-3 text-start" id="swal-cliente-wrap" style="display:none">
+          <label class="form-label fw-semibold">Nombre del cliente *</label>
+          <input id="swal-clienteNombre" class="form-control" placeholder="Nombre exacto del cliente">
+          <small class="text-muted">Debe coincidir exactamente con el nombre en la sección Clientes.</small>
         </div>
         <div class="mb-3 text-start">
           <label class="form-label fw-semibold">Contraseña *</label>
@@ -178,7 +198,13 @@ const UsuariosPage = () => {
           <div id="swal-match" class="small mt-1"></div>
         </div>
       `,
-      didOpen: agregarValidacionConfirmacion,
+      didOpen: () => {
+        agregarValidacionConfirmacion();
+        document.getElementById('swal-rol')?.addEventListener('change', (e) => {
+          const wrap = document.getElementById('swal-cliente-wrap');
+          if (wrap) wrap.style.display = e.target.value === 'cliente' ? 'block' : 'none';
+        });
+      },
       focusConfirm: false,
       showCancelButton: true,
       confirmButtonColor: "#198754",
@@ -191,20 +217,22 @@ const UsuariosPage = () => {
         const apellido = document.getElementById("swal-apellido").value.trim();
         const email = document.getElementById("swal-email").value.trim();
         const rol = document.getElementById("swal-rol").value;
+        const clienteNombre = document.getElementById("swal-clienteNombre")?.value.trim() || '';
         const password = document.getElementById("swal-password").value;
         const password2 = document.getElementById("swal-password2").value;
 
         if (!nombre || !apellido || !email || !password || !password2) return Swal.showValidationMessage("Completá todos los campos") && false;
         if (!EMAIL_REGEX.test(email)) return Swal.showValidationMessage("Email inválido") && false;
+        if (rol === 'cliente' && !clienteNombre) return Swal.showValidationMessage("Ingresá el nombre del cliente") && false;
         if (!PASSWORD_REGEX.test(password)) return Swal.showValidationMessage("Contraseña inválida: mayúscula + letras + números, mínimo 6 caracteres") && false;
         if (password !== password2) return Swal.showValidationMessage("Las contraseñas no coinciden") && false;
-        return { nombre, apellido, email, rol, password };
+        return { nombre, apellido, email, rol, clienteNombre, password };
       },
     });
 
     if (!value) return;
     try {
-      await crearUsuario({ nombre: value.nombre, apellido: value.apellido, email: value.email, rol: value.rol, password: value.password });
+      await crearUsuario({ nombre: value.nombre, apellido: value.apellido, email: value.email, rol: value.rol, clienteNombre: value.clienteNombre || '', password: value.password });
       Swal.fire({ icon: "success", title: "Usuario creado", timer: 1500, showConfirmButton: false });
       cargarUsuarios();
     } catch (error) {
@@ -214,6 +242,7 @@ const UsuariosPage = () => {
 
   const badgeRol = (rol) => {
     if (rol === 'admin') return <span className="badge bg-primary">Admin</span>;
+    if (rol === 'cliente') return <span className="badge bg-success">Cliente</span>;
     return <span className="badge bg-secondary">Supervisor</span>;
   };
 
@@ -259,6 +288,7 @@ const UsuariosPage = () => {
                       <th>Nombre</th>
                       <th>Email</th>
                       <th>Rol</th>
+                      <th>Cliente</th>
                       <th className="text-center">Acciones</th>
                     </tr>
                   </thead>
@@ -268,6 +298,7 @@ const UsuariosPage = () => {
                         <td className="fw-semibold">{u.nombre} {u.apellido}</td>
                         <td className="text-muted small">{u.email}</td>
                         <td>{badgeRol(u.rol)}</td>
+                        <td className="small text-muted">{u.clienteNombre || '—'}</td>
                         <td className="text-center">
                           <button className="btn btn-sm me-1" style={{ backgroundColor: '#ffc107', color: '#000' }}
                             onClick={() => handleEditar(u)}>

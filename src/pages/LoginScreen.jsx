@@ -43,6 +43,12 @@ const LoginScreen = () => {
       localStorage.setItem("email", formData.email.trim());
       localStorage.setItem("rol", data.rol || "supervisor");
       localStorage.setItem("nombre", data.nombre || "");
+      localStorage.setItem("clienteNombre", data.clienteNombre || "");
+
+      if (data.rol === "cliente") {
+        navigate("/lista");
+        return;
+      }
 
       if (data.rol === "supervisor") {
         try {
