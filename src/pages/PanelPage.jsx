@@ -61,6 +61,9 @@ function StatCard({ label, value, sub, color = 'primary', icon }) {
   );
 }
 
+// yyyy-mm-dd → dd/mm/yyyy para mostrar sobre el input
+const isoToDisplay = (s) => s ? s.split('-').reverse().join('/') : '';
+
 export default function PanelPage() {
   const [trabajos, setTrabajos] = useState([]);
   const [estadisticas, setEstadisticas] = useState(null);
@@ -344,13 +347,25 @@ export default function PanelPage() {
             <div className="row g-2">
               <div className="col-6 col-md-3 col-lg-2">
                 <label className="form-label small fw-semibold mb-1">Desde</label>
-                <input type="date" className="form-control form-control-sm" name="desde"
-                  value={filtros.desde} onChange={handleFiltro} />
+                <div className="position-relative">
+                  <span className="position-absolute top-50 translate-middle-y ps-2 small text-muted pe-none" style={{ zIndex: 2 }}>
+                    {filtros.desde ? isoToDisplay(filtros.desde) : 'dd/mm/aaaa'}
+                  </span>
+                  <input type="date" className="form-control form-control-sm" name="desde"
+                    style={{ color: 'transparent', caretColor: 'transparent' }}
+                    value={filtros.desde} onChange={handleFiltro} />
+                </div>
               </div>
               <div className="col-6 col-md-3 col-lg-2">
                 <label className="form-label small fw-semibold mb-1">Hasta</label>
-                <input type="date" className="form-control form-control-sm" name="hasta"
-                  value={filtros.hasta} onChange={handleFiltro} />
+                <div className="position-relative">
+                  <span className="position-absolute top-50 translate-middle-y ps-2 small text-muted pe-none" style={{ zIndex: 2 }}>
+                    {filtros.hasta ? isoToDisplay(filtros.hasta) : 'dd/mm/aaaa'}
+                  </span>
+                  <input type="date" className="form-control form-control-sm" name="hasta"
+                    style={{ color: 'transparent', caretColor: 'transparent' }}
+                    value={filtros.hasta} onChange={handleFiltro} />
+                </div>
               </div>
               <div className="col-6 col-md-3 col-lg-2">
                 <label className="form-label small fw-semibold mb-1">Usuario</label>

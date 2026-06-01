@@ -5,6 +5,7 @@ import { obtenerTrabajosBackend } from '../services/api';
 import * as XLSX from 'xlsx';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
+const isoToDisplay = (s) => s ? s.split('-').reverse().join('/') : '';
 
 const ESTADOS_PENDIENTE = ['Terminado', 'Finalizado'];
 
@@ -462,23 +463,27 @@ export default function CertificacionesPage() {
         <i className="bi bi-calendar-range text-muted small"></i>
         <div className="d-flex align-items-center gap-1">
           <label className="small text-muted mb-0 me-1">Desde</label>
-          <input
-            type="date"
-            className="form-control form-control-sm"
-            style={{ width: 150 }}
-            value={fechaDesde}
-            onChange={(e) => { setFechaDesde(e.target.value); setExpandido(null); }}
-          />
+          <div className="position-relative" style={{ width: 140 }}>
+            <span className="position-absolute top-50 translate-middle-y ps-2 small text-muted pe-none" style={{ zIndex: 2 }}>
+              {fechaDesde ? isoToDisplay(fechaDesde) : 'dd/mm/aaaa'}
+            </span>
+            <input type="date" className="form-control form-control-sm"
+              style={{ color: 'transparent', caretColor: 'transparent' }}
+              value={fechaDesde}
+              onChange={(e) => { setFechaDesde(e.target.value); setExpandido(null); }} />
+          </div>
         </div>
         <div className="d-flex align-items-center gap-1">
           <label className="small text-muted mb-0 me-1">Hasta</label>
-          <input
-            type="date"
-            className="form-control form-control-sm"
-            style={{ width: 150 }}
-            value={fechaHasta}
-            onChange={(e) => { setFechaHasta(e.target.value); setExpandido(null); }}
-          />
+          <div className="position-relative" style={{ width: 140 }}>
+            <span className="position-absolute top-50 translate-middle-y ps-2 small text-muted pe-none" style={{ zIndex: 2 }}>
+              {fechaHasta ? isoToDisplay(fechaHasta) : 'dd/mm/aaaa'}
+            </span>
+            <input type="date" className="form-control form-control-sm"
+              style={{ color: 'transparent', caretColor: 'transparent' }}
+              value={fechaHasta}
+              onChange={(e) => { setFechaHasta(e.target.value); setExpandido(null); }} />
+          </div>
         </div>
         {(fechaDesde || fechaHasta) && (
           <button

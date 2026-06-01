@@ -138,23 +138,27 @@ export default function DetallePage() {
                     {item.fotos.length} foto{item.fotos.length !== 1 ? 's' : ''} / video{item.fotos.length !== 1 ? 's' : ''}
                   </div>
                   <div className="d-flex flex-wrap gap-2">
-                    {item.fotos.map((f, i) => (
-                      <div key={i}
-                        onClick={() => f.tipo?.startsWith('image') && setFotoAmpliada(f.data)}
-                        style={{ cursor: f.tipo?.startsWith('image') ? 'pointer' : 'default' }}>
-                        {f.tipo?.startsWith('image') ? (
-                          <img src={f.data} alt={f.nombre}
-                            style={{ width: 72, height: 72, objectFit: 'cover' }}
-                            className="rounded border" />
-                        ) : (
-                          <div className="bg-light border rounded d-flex flex-column align-items-center justify-content-center p-1"
-                            style={{ width: 72, height: 72 }}>
-                            <i className="bi bi-camera-video text-secondary fs-5"></i>
-                            <div className="text-muted text-center" style={{ fontSize: 9 }}>{f.nombre}</div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                    {item.fotos.map((f, i) => {
+                      const src = f.driveUrl || f.data;
+                      const esImagen = f.tipo?.startsWith('image');
+                      return (
+                        <div key={i}
+                          onClick={() => esImagen ? setFotoAmpliada(src) : src && window.open(src, '_blank')}
+                          style={{ cursor: src ? 'pointer' : 'default' }}>
+                          {esImagen ? (
+                            <img src={src} alt={f.nombre}
+                              style={{ width: 72, height: 72, objectFit: 'cover' }}
+                              className="rounded border" />
+                          ) : (
+                            <div className="bg-light border rounded d-flex flex-column align-items-center justify-content-center p-1"
+                              style={{ width: 72, height: 72 }}>
+                              <i className="bi bi-camera-video text-secondary fs-5"></i>
+                              <div className="text-muted text-center" style={{ fontSize: 9 }}>{f.nombre}</div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -190,25 +194,29 @@ export default function DetallePage() {
           </div>
           <div className="card-body">
             <div className="d-flex flex-wrap gap-2">
-              {trabajo.fotos.map((f, i) => (
-                <div key={i}
-                  onClick={() => f.tipo?.startsWith('image') && setFotoAmpliada(f.data)}
-                  style={{ cursor: f.tipo?.startsWith('image') ? 'pointer' : 'default' }}>
-                  {f.tipo?.startsWith('image') ? (
-                    <img src={f.data} alt={f.nombre}
-                      style={{ width: 80, height: 80, objectFit: 'cover' }}
-                      className="rounded border" />
-                  ) : (
-                    <div className="bg-light border rounded d-flex flex-column align-items-center justify-content-center p-2"
-                      style={{ width: 80, height: 80 }}>
-                      <i className="bi bi-camera-video text-secondary fs-4"></i>
-                      <div className="small text-muted text-center" style={{ fontSize: 9 }}>
-                        {f.nombre}
+              {trabajo.fotos.map((f, i) => {
+                const src = f.driveUrl || f.data;
+                const esImagen = f.tipo?.startsWith('image');
+                return (
+                  <div key={i}
+                    onClick={() => esImagen ? setFotoAmpliada(src) : src && window.open(src, '_blank')}
+                    style={{ cursor: src ? 'pointer' : 'default' }}>
+                    {esImagen ? (
+                      <img src={src} alt={f.nombre}
+                        style={{ width: 80, height: 80, objectFit: 'cover' }}
+                        className="rounded border" />
+                    ) : (
+                      <div className="bg-light border rounded d-flex flex-column align-items-center justify-content-center p-2"
+                        style={{ width: 80, height: 80 }}>
+                        <i className="bi bi-camera-video text-secondary fs-4"></i>
+                        <div className="small text-muted text-center" style={{ fontSize: 9 }}>
+                          {f.nombre}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              ))}
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
