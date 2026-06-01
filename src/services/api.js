@@ -106,7 +106,6 @@ export const importarTrabajos = async (trabajos) => {
 };
 
 export const sincronizarTrabajos = async (trabajos) => {
-  if (IS_DEV) return { ok: true, sincronizados: 0 };
   const token = localStorage.getItem("token");
   const response = await fetch(`${API_URL}/trabajos/sync`, {
     method: "POST",
