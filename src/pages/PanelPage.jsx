@@ -568,7 +568,7 @@ export default function PanelPage() {
                         <XAxis dataKey="fecha" tick={{ fontSize: 11 }} />
                         <YAxis tick={{ fontSize: 11 }} unit=" m²" />
                         <Tooltip formatter={(v) => [`${v} m²`, 'Superficie']} />
-                        <Bar dataKey="superficie" fill="#0d6efd" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="superficie" fill="#dc3545" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   )}
