@@ -61,14 +61,14 @@ export default function PanelPage() {
 
   const [filtros, setFiltros] = useState({
     desde: '', hasta: '', usuario: '', tipoTrabajo: '',
-    estadoOperativo: '', estadoAdmin: '', material: '',
+    estadoOperativo: '', estadoAdmin: '', material: '', cliente: '',
   });
 
   const cargar = useCallback(async () => {
     setCargando(true);
     setError('');
     try {
-      const { material, ...backendFiltros } = filtros;
+      const { material, cliente, ...backendFiltros } = filtros;
       if (backendFiltros.tipoTrabajo) backendFiltros.tipoTrabajo = normTipoGlobal(backendFiltros.tipoTrabajo);
       const params = Object.fromEntries(Object.entries(backendFiltros).filter(([, v]) => v !== ''));
       const [{ trabajos: t }, { estadisticas: e }, catRes, consumoRes] = await Promise.all([
@@ -85,6 +85,9 @@ export default function PanelPage() {
           [...(tj.materiales || []), ...(tj.items || []).flatMap((i) => i.materiales || [])]
             .some((m) => m.nombre === material)
         );
+      }
+      if (cliente) {
+        resultado = resultado.filter((tj) => tj.clienteNombre === cliente);
       }
       setTrabajos(resultado);
       setEstadisticas(e || null);
@@ -262,7 +265,7 @@ export default function PanelPage() {
   }
 
   function limpiarFiltros() {
-    setFiltros({ desde: '', hasta: '', usuario: '', tipoTrabajo: '', estadoOperativo: '', estadoAdmin: '', material: '' });
+    setFiltros({ desde: '', hasta: '', usuario: '', tipoTrabajo: '', estadoOperativo: '', estadoAdmin: '', material: '', cliente: '' });
   }
 
   const hayFiltros = Object.values(filtros).some((v) => v !== '');
@@ -384,6 +387,16 @@ export default function PanelPage() {
                   value={filtros.material} onChange={handleFiltro}>
                   <option value="">Todos</option>
                   {materialesUnicos.map((m) => <option key={m}>{m}</option>)}
+                </select>
+              </div>
+              <div className="col-6 col-md-3 col-lg-2">
+                <label className="form-label small fw-semibold mb-1">Cliente</label>
+                <select className="form-select form-select-sm" name="cliente"
+                  value={filtros.cliente} onChange={handleFiltro}>
+                  <option value="">Todos</option>
+                  {[...new Set(trabajos.map((t) => t.clienteNombre).filter(Boolean))].sort().map((c) => (
+                    <option key={c}>{c}</option>
+                  ))}
                 </select>
               </div>
             </div>

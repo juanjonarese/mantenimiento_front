@@ -69,6 +69,7 @@ function FitBounds({ trabajos }) {
 export default function MapaPage() {
   const [trabajos, setTrabajos] = useState([]);
   const [filtro, setFiltro] = useState('todos');
+  const [filtroCliente, setFiltroCliente] = useState('');
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
 
@@ -96,7 +97,9 @@ export default function MapaPage() {
   }, []);
 
   const conUbicacion = trabajos.filter((t) => t.lat && t.lng);
-  const filtrados = conUbicacion.filter((t) => matchFiltro(t, filtro));
+  const filtrados = conUbicacion.filter((t) =>
+    matchFiltro(t, filtro) && (!filtroCliente || t.clienteNombre === filtroCliente)
+  );
   const centro = conUbicacion.length > 0
     ? [conUbicacion[0].lat, conUbicacion[0].lng]
     : [-26.8241, -65.2226];
@@ -120,21 +123,34 @@ export default function MapaPage() {
             <i className="bi bi-wifi-off me-1"></i>{error}
           </span>
         )}
-        <div className="ms-auto d-flex gap-1 flex-wrap">
-          {FILTROS_MAPA.map(({ key, label, color }) => (
-            <button
-              key={key}
-              onClick={() => setFiltro(key)}
-              className={`btn btn-sm ${filtro === key ? 'text-white' : 'btn-outline-secondary'}`}
-              style={filtro === key ? { backgroundColor: color, borderColor: color } : {}}
-            >
-              <span
-                className="d-inline-block rounded-circle me-1"
-                style={{ width: 9, height: 9, backgroundColor: filtro === key ? 'rgba(255,255,255,0.8)' : color, verticalAlign: 'middle' }}
-              ></span>
-              {label}
-            </button>
-          ))}
+        <div className="ms-auto d-flex gap-2 flex-wrap align-items-center">
+          <select
+            className="form-select form-select-sm"
+            style={{ width: 'auto', minWidth: 140 }}
+            value={filtroCliente}
+            onChange={(e) => setFiltroCliente(e.target.value)}
+          >
+            <option value="">Todos los clientes</option>
+            {[...new Set(conUbicacion.map((t) => t.clienteNombre).filter(Boolean))].sort().map((c) => (
+              <option key={c}>{c}</option>
+            ))}
+          </select>
+          <div className="d-flex gap-1 flex-wrap">
+            {FILTROS_MAPA.map(({ key, label, color }) => (
+              <button
+                key={key}
+                onClick={() => setFiltro(key)}
+                className={`btn btn-sm ${filtro === key ? 'text-white' : 'btn-outline-secondary'}`}
+                style={filtro === key ? { backgroundColor: color, borderColor: color } : {}}
+              >
+                <span
+                  className="d-inline-block rounded-circle me-1"
+                  style={{ width: 9, height: 9, backgroundColor: filtro === key ? 'rgba(255,255,255,0.8)' : color, verticalAlign: 'middle' }}
+                ></span>
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

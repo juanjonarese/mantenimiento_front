@@ -251,6 +251,7 @@ export default function CertificacionesPage() {
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
   const [busquedaNro, setBusquedaNro] = useState('');
+  const [filtroCliente, setFiltroCliente] = useState('');
   const [seleccionados, setSeleccionados] = useState(new Set());
   const [expandido, setExpandido] = useState(null);
   const [modal, setModal] = useState(null); // { tipo, trabajo | bulk }
@@ -304,6 +305,7 @@ export default function CertificacionesPage() {
       const nro = (t.nroCertificado || '').toLowerCase();
       if (!nro.includes(busquedaNro.trim().toLowerCase())) return false;
     }
+    if (filtroCliente && t.clienteNombre !== filtroCliente) return false;
     return true;
   });
 
@@ -489,6 +491,17 @@ export default function CertificacionesPage() {
         {(fechaDesde || fechaHasta) && (
           <span className="small text-muted ms-1">{filtrados.length} resultado{filtrados.length !== 1 ? 's' : ''}</span>
         )}
+        <select
+          className="form-select form-select-sm"
+          style={{ width: 'auto', minWidth: 150 }}
+          value={filtroCliente}
+          onChange={(e) => { setFiltroCliente(e.target.value); setExpandido(null); }}
+        >
+          <option value="">Todos los clientes</option>
+          {[...new Set(trabajos.map((t) => t.clienteNombre).filter(Boolean))].sort().map((c) => (
+            <option key={c}>{c}</option>
+          ))}
+        </select>
       </div>
 
       {/* ── BARRA SELECCIÓN MASIVA ── */}

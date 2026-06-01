@@ -15,6 +15,7 @@ export default function ListaPage() {
   const [busqueda, setBusqueda] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('');
   const [filtroCertif, setFiltroCertif] = useState('');
+  const [filtroCliente, setFiltroCliente] = useState('');
   const [sincronizando, setSincronizando] = useState(false);
   const [cargando, setCargando] = useState(true);
   const [mostrarImportar, setMostrarImportar] = useState(false);
@@ -70,7 +71,8 @@ export default function ListaPage() {
       (t.calle2 || '').toLowerCase().includes(q);
     const coincideEstado = !filtroEstado || t.estadoOperativo === filtroEstado;
     const coincideCertif = !filtroCertif || t.estadoAdmin === filtroCertif;
-    return coincideBusqueda && coincideEstado && coincideCertif;
+    const coincideCliente = !filtroCliente || t.clienteNombre === filtroCliente;
+    return coincideBusqueda && coincideEstado && coincideCertif && coincideCliente;
   });
 
   const totalPaginas = Math.max(1, Math.ceil(filtrados.length / POR_PAGINA));
@@ -78,7 +80,7 @@ export default function ListaPage() {
   const paginados = filtrados.slice((paginaActual - 1) * POR_PAGINA, paginaActual * POR_PAGINA);
 
   // Resetear a página 1 cuando cambian los filtros
-  useEffect(() => { setPagina(1); }, [busqueda, filtroEstado, filtroCertif]);
+  useEffect(() => { setPagina(1); }, [busqueda, filtroEstado, filtroCertif, filtroCliente]);
 
   // Extrae la superficie de un tipo específico, soporta formato items[] y legacy
   const getSup = (t, tipo) => {
@@ -180,7 +182,7 @@ export default function ListaPage() {
               )}
             </div>
           </div>
-          <div className="col-6 col-md-3">
+          <div className="col-6 col-md-2">
             <select className="form-select form-select-sm" value={filtroEstado}
               onChange={(e) => setFiltroEstado(e.target.value)}>
               <option value="">Todos los estados</option>
@@ -189,7 +191,7 @@ export default function ListaPage() {
               <option>Terminado</option>
             </select>
           </div>
-          <div className="col-6 col-md-3">
+          <div className="col-6 col-md-2">
             <select className="form-select form-select-sm" value={filtroCertif}
               onChange={(e) => setFiltroCertif(e.target.value)}>
               <option value="">Toda certificación</option>
@@ -197,6 +199,15 @@ export default function ListaPage() {
               <option>En revisión</option>
               <option>Certificado</option>
               <option>Rechazado</option>
+            </select>
+          </div>
+          <div className="col-6 col-md-2">
+            <select className="form-select form-select-sm" value={filtroCliente}
+              onChange={(e) => { setFiltroCliente(e.target.value); setPagina(1); }}>
+              <option value="">Todos los clientes</option>
+              {[...new Set(trabajos.map((t) => t.clienteNombre).filter(Boolean))].sort().map((c) => (
+                <option key={c}>{c}</option>
+              ))}
             </select>
           </div>
         </div>
