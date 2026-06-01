@@ -25,6 +25,18 @@ const TIPO_ALIAS = {
 };
 const normTipoGlobal = (t) => TIPO_ALIAS[t] || t;
 
+// Normaliza string: minúsculas sin acentos (nivel módulo para reutilizar)
+const normStrGlobal = (s) => (s || '').toLowerCase()
+  .normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+// Match por palabra clave más larga (≥ 6 chars) del nombre del catálogo
+const matchMatGlobal = (catalogName, trabajoName) => {
+  const na = normStrGlobal(catalogName);
+  const nb = normStrGlobal(trabajoName);
+  if (na === nb) return true;
+  const longestKey = na.split(/\s+/).filter((w) => w.length >= 6).sort((x, y) => y.length - x.length)[0];
+  return longestKey ? nb.includes(longestKey) : false;
+};
+
 function getPinColor(t) {
   if (t.estadoAdmin === 'Certificado') return COLOR_PIN['Certificado'];
   if (t.estadoOperativo === 'Terminado' || t.estadoOperativo === 'Finalizado') return COLOR_PIN['Terminado'];
@@ -146,9 +158,12 @@ export default function PanelPage() {
     trabajos.forEach((t) => {
       [...(t.materiales || []), ...(t.items || []).flatMap((i) => i.materiales || [])].forEach((m) => {
         if (!m.nombre) return;
-        const key = `${m.nombre}||${m.unidad || ''}`;
-        if (!mapa[key]) mapa[key] = { nombre: m.nombre, unidad: m.unidad || '', cantidad: 0 };
-        mapa[key].cantidad += m.cantidad || 0;
+        // Normalizar al nombre del catálogo si hay match
+        const catEntry = catalogo.find((c) => matchMatGlobal(c.nombre, m.nombre));
+        const nombreNorm = catEntry ? catEntry.nombre : m.nombre;
+        const unidadNorm  = catEntry ? catEntry.unidad : (m.unidad || '');
+        if (!mapa[nombreNorm]) mapa[nombreNorm] = { nombre: nombreNorm, unidad: unidadNorm, cantidad: 0 };
+        mapa[nombreNorm].cantidad += m.cantidad || 0;
       });
     });
     return Object.values(mapa)
@@ -158,16 +173,8 @@ export default function PanelPage() {
 
   const normTipo = normTipoGlobal;
 
-  // Normaliza string: minúsculas, sin acentos
-  const normStr = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
-  // Coincidencia por la palabra más larga (≥ 6 chars) del nombre del catálogo en el nombre del trabajo
-  const matchMat = (catalogName, trabajoName) => {
-    const na = normStr(catalogName);
-    const nb = normStr(trabajoName);
-    if (na === nb) return true;
-    const longestKey = na.split(/\s+/).filter((w) => w.length >= 6).sort((x, y) => y.length - x.length)[0];
-    return longestKey ? nb.includes(longestKey) : false;
-  };
+  const normStr = normStrGlobal;
+  const matchMat = matchMatGlobal;
   // Extrae número y unidad de tamano (ej: "25 kg" → { num: 25, unit: "kg" })
   const parseTamano = (str) => {
     if (!str) return { num: null, unit: '' };
@@ -181,10 +188,10 @@ export default function PanelPage() {
     .filter((mat) => mat.tiposTarea && mat.tiposTarea.length > 0)
     .map((mat) => {
       const tiposNorm = mat.tiposTarea.map(normTipo);
-      // Usa consumoMateriales (desde trabajos) con keyword matching por nombre de catálogo
-      const matchedConsumo = consumoMateriales.filter((c) => matchMat(mat.nombre, c.nombre));
-      const consumido = matchedConsumo.reduce((s, c) => s + c.cantidad, 0);
-      const unidadConsumo = matchedConsumo[0]?.unidad || mat.unidad;
+      // consumoMateriales ya tiene nombres normalizados al catálogo → match directo
+      const entrada = consumoMateriales.find((c) => c.nombre === mat.nombre);
+      const consumido = entrada?.cantidad || 0;
+      const unidadConsumo = entrada?.unidad || mat.unidad;
       const m2 = trabajos.reduce((sum, t) => {
         if (t.items?.length) {
           return sum + t.items
