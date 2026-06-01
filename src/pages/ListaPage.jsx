@@ -263,6 +263,7 @@ export default function ListaPage() {
                         {getSup(t, 'RAMPAS')   > 0 && <span className="text-muted">Rampas <strong>{getSup(t, 'RAMPAS').toFixed(1)}</strong> m²</span>}
                         {getSup(t, 'CORDONES') > 0 && <span className="text-muted">Cordones <strong>{getSup(t, 'CORDONES').toFixed(1)}</strong> m²</span>}
                       </div>
+                      {/* Materiales: solo visible para admin/supervisor */}
                       <div className="d-flex align-items-center justify-content-between gap-2 flex-wrap">
                         <div className="d-flex gap-1 flex-wrap">
                           <span className={`badge bg-${COLORES_ESTADO_OP[t.estadoOperativo]}`}>{t.estadoOperativo}</span>
@@ -293,10 +294,7 @@ export default function ListaPage() {
                       <th className="text-end">Sendas m²</th>
                       <th className="text-end">Rampas m²</th>
                       <th className="text-end">Cordones m²</th>
-                      <th className="text-end">B.Termo</th>
-                      <th className="text-end">B.Micro</th>
-                      <th className="text-end">Imprim. l</th>
-                      <th className="text-end">P.Acrílica l</th>
+                      {!esCliente && <><th className="text-end">B.Termo</th><th className="text-end">B.Micro</th><th className="text-end">Imprim. l</th><th className="text-end">P.Acrílica l</th></>}
                       <th>Estado</th>
                       <th>Certificación</th>
                       <th></th>
@@ -312,10 +310,7 @@ export default function ListaPage() {
                         <td className="text-end">{getSup(t, 'SENDAS') > 0 ? getSup(t, 'SENDAS').toFixed(1) : <span className="text-muted">—</span>}</td>
                         <td className="text-end">{getSup(t, 'RAMPAS') > 0 ? getSup(t, 'RAMPAS').toFixed(1) : <span className="text-muted">—</span>}</td>
                         <td className="text-end">{getSup(t, 'CORDONES') > 0 ? getSup(t, 'CORDONES').toFixed(1) : <span className="text-muted">—</span>}</td>
-                        <td className="text-end">{getMat(t, 'termoplást') > 0 ? getMat(t, 'termoplást').toFixed(1) : <span className="text-muted">—</span>}</td>
-                        <td className="text-end">{getMat(t, 'microesfera') > 0 ? getMat(t, 'microesfera').toFixed(1) : <span className="text-muted">—</span>}</td>
-                        <td className="text-end">{getMat(t, 'imprimac') > 0 ? getMat(t, 'imprimac').toFixed(1) : <span className="text-muted">—</span>}</td>
-                        <td className="text-end">{getMat(t, 'acrílica') > 0 ? getMat(t, 'acrílica').toFixed(1) : <span className="text-muted">—</span>}</td>
+                        {!esCliente && <><td className="text-end">{getMat(t, 'termoplást') > 0 ? getMat(t, 'termoplást').toFixed(1) : <span className="text-muted">—</span>}</td><td className="text-end">{getMat(t, 'microesfera') > 0 ? getMat(t, 'microesfera').toFixed(1) : <span className="text-muted">—</span>}</td><td className="text-end">{getMat(t, 'imprimac') > 0 ? getMat(t, 'imprimac').toFixed(1) : <span className="text-muted">—</span>}</td><td className="text-end">{getMat(t, 'acrílica') > 0 ? getMat(t, 'acrílica').toFixed(1) : <span className="text-muted">—</span>}</td></>}
                         <td><span className={`badge bg-${COLORES_ESTADO_OP[t.estadoOperativo]}`}>{t.estadoOperativo}</span></td>
                         <td><span className={`badge bg-${COLORES_ESTADO_ADMIN[t.estadoAdmin]}`}>{t.estadoAdmin}</span></td>
                         <td>
@@ -336,10 +331,7 @@ export default function ListaPage() {
                       <td className="text-end">{filtrados.reduce((a, t) => a + getSup(t, 'SENDAS'), 0).toFixed(1)}</td>
                       <td className="text-end">{filtrados.reduce((a, t) => a + getSup(t, 'RAMPAS'), 0).toFixed(1)}</td>
                       <td className="text-end">{filtrados.reduce((a, t) => a + getSup(t, 'CORDONES'), 0).toFixed(1)}</td>
-                      <td className="text-end">{filtrados.reduce((a, t) => a + getMat(t, 'termoplást'), 0).toFixed(1)}</td>
-                      <td className="text-end">{filtrados.reduce((a, t) => a + getMat(t, 'microesfera'), 0).toFixed(1)}</td>
-                      <td className="text-end">{filtrados.reduce((a, t) => a + getMat(t, 'imprimac'), 0).toFixed(1)}</td>
-                      <td className="text-end">{filtrados.reduce((a, t) => a + getMat(t, 'acrílica'), 0).toFixed(1)}</td>
+                      {!esCliente && <><td className="text-end">{filtrados.reduce((a, t) => a + getMat(t, 'termoplást'), 0).toFixed(1)}</td><td className="text-end">{filtrados.reduce((a, t) => a + getMat(t, 'microesfera'), 0).toFixed(1)}</td><td className="text-end">{filtrados.reduce((a, t) => a + getMat(t, 'imprimac'), 0).toFixed(1)}</td><td className="text-end">{filtrados.reduce((a, t) => a + getMat(t, 'acrílica'), 0).toFixed(1)}</td></>}
                       <td colSpan={3}></td>
                     </tr>
                   </tfoot>

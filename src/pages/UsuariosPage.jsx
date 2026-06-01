@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
-import { obtenerUsuarios, eliminarUsuario, actualizarUsuario, crearUsuario } from "../services/api";
+import { obtenerUsuarios, eliminarUsuario, actualizarUsuario, crearUsuario, obtenerTodosClientes } from "../services/api";
 
 const PASSWORD_REGEX = /^[A-Z](?=.*[a-z])(?=.*\d)[A-Za-z\d]{5,}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -31,6 +31,12 @@ function agregarValidacionConfirmacion() {
   p1.addEventListener("input", verificar);
   p2.addEventListener("input", verificar);
 }
+
+const buildClienteSelect = (clientes, valorActual = '') =>
+  `<select id="swal-clienteNombre" class="form-select">
+    <option value="">Seleccioná un cliente...</option>
+    ${clientes.map((c) => `<option value="${c.nombre}" ${c.nombre === valorActual ? 'selected' : ''}>${c.nombre}</option>`).join('')}
+  </select>`;
 
 const UsuariosPage = () => {
   const [usuarios, setUsuarios] = useState([]);
@@ -72,6 +78,9 @@ const UsuariosPage = () => {
   };
 
   const handleEditar = async (usuario) => {
+    let clientesDisponibles = [];
+    try { const r = await obtenerTodosClientes(); clientesDisponibles = r.clientes || []; } catch { /* sin clientes */ }
+
     const { value } = await Swal.fire({
       title: "Editar usuario",
       html: `
@@ -96,9 +105,8 @@ const UsuariosPage = () => {
           </select>
         </div>
         <div class="mb-3 text-start" id="swal-cliente-wrap" style="display:${usuario.rol === 'cliente' ? 'block' : 'none'}">
-          <label class="form-label fw-semibold">Nombre del cliente *</label>
-          <input id="swal-clienteNombre" class="form-control" value="${usuario.clienteNombre || ''}" placeholder="Nombre exacto del cliente">
-          <small class="text-muted">Debe coincidir exactamente con el nombre en la sección Clientes.</small>
+          <label class="form-label fw-semibold">Cliente *</label>
+          ${buildClienteSelect(clientesDisponibles, usuario.clienteNombre || '')}
         </div>
         <hr>
         <div class="mb-3 text-start">
@@ -159,6 +167,9 @@ const UsuariosPage = () => {
   };
 
   const handleCrear = async () => {
+    let clientesDisponibles = [];
+    try { const r = await obtenerTodosClientes(); clientesDisponibles = r.clientes || []; } catch { /* sin clientes */ }
+
     const { value } = await Swal.fire({
       title: "Nuevo usuario",
       html: `
@@ -183,9 +194,8 @@ const UsuariosPage = () => {
           </select>
         </div>
         <div class="mb-3 text-start" id="swal-cliente-wrap" style="display:none">
-          <label class="form-label fw-semibold">Nombre del cliente *</label>
-          <input id="swal-clienteNombre" class="form-control" placeholder="Nombre exacto del cliente">
-          <small class="text-muted">Debe coincidir exactamente con el nombre en la sección Clientes.</small>
+          <label class="form-label fw-semibold">Cliente *</label>
+          ${buildClienteSelect(clientesDisponibles)}
         </div>
         <div class="mb-3 text-start">
           <label class="form-label fw-semibold">Contraseña *</label>
