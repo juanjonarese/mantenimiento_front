@@ -155,37 +155,33 @@ export default function PanelPage() {
 
   const normTipo = normTipoGlobal;
 
-  // Extrae el número y la unidad de un string de tamaño (ej: "25 kg" → { num: 25, unit: "kg" })
-  const parseTamano = (str) => {
-    if (!str) return { num: null, unit: '' };
-    const match = str.match(/^([\d.,]+)\s*(.*)$/);
-    if (!match) return { num: null, unit: '' };
-    return { num: parseFloat(match[1].replace(',', '.')), unit: match[2].trim() };
-  };
-
-  // Normaliza string: minúsculas, sin acentos (rango NFD U+0300-U+036F)
-  const normStr = (s) => (s || '').toLowerCase()
-    .normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
-  // Dos nombres de material coinciden si son iguales OR si la palabra más larga
-  // del nombre del catálogo (≥ 6 chars) está contenida en el nombre del trabajo
+  // Normaliza string: minúsculas, sin acentos
+  const normStr = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+  // Coincidencia por la palabra más larga (≥ 6 chars) del nombre del catálogo en el nombre del trabajo
   const matchMat = (catalogName, trabajoName) => {
     const na = normStr(catalogName);
     const nb = normStr(trabajoName);
     if (na === nb) return true;
-    const longestKey = na.split(/\s+/)
-      .filter((w) => w.length >= 6)
-      .sort((x, y) => y.length - x.length)[0];
+    const longestKey = na.split(/\s+/).filter((w) => w.length >= 6).sort((x, y) => y.length - x.length)[0];
     return longestKey ? nb.includes(longestKey) : false;
   };
+  // Extrae número y unidad de tamano (ej: "25 kg" → { num: 25, unit: "kg" })
+  const parseTamano = (str) => {
+    if (!str) return { num: null, unit: '' };
+    const m = str.match(/^([\d.,]+)\s*(.*)$/);
+    return m ? { num: parseFloat(m[1].replace(',', '.')), unit: m[2].trim() } : { num: null, unit: '' };
+  };
+  // Unidades de conteo (envases/bolsas) que requieren multiplicar por tamano
+  const UNIDADES_CONTEO = ['u', 'bolsas', 'unidades', 'unidad', 'tambores'];
 
   const rendimientoMateriales = catalogo
     .filter((mat) => mat.tiposTarea && mat.tiposTarea.length > 0)
     .map((mat) => {
       const tiposNorm = mat.tiposTarea.map(normTipo);
-      // Busca en consumoMateriales usando matching flexible por palabras clave
-      const matched = consumoMateriales.filter((c) => matchMat(mat.nombre, c.nombre));
-      const consumido = matched.reduce((s, c) => s + c.cantidad, 0);
-      const consumidoUnidad = matched[0]?.unidad || mat.unidad;
+      // Usa consumoMateriales (desde trabajos) con keyword matching por nombre de catálogo
+      const matchedConsumo = consumoMateriales.filter((c) => matchMat(mat.nombre, c.nombre));
+      const consumido = matchedConsumo.reduce((s, c) => s + c.cantidad, 0);
+      const unidadConsumo = matchedConsumo[0]?.unidad || mat.unidad;
       const m2 = trabajos.reduce((sum, t) => {
         if (t.items?.length) {
           return sum + t.items
@@ -194,39 +190,22 @@ export default function PanelPage() {
         }
         return sum + (tiposNorm.includes(normTipo(t.tipoTrabajo)) ? (t.superficie || 0) : 0);
       }, 0);
+      // Si el consumo está en unidades (bolsas/u), multiplicar por tamano para obtener kg o l reales
       const { num: tamanoNum, unit: tamanoUnit } = parseTamano(mat.tamano);
-      // Si el consumo está en unidades (bolsas) → multiplicar por tamano para obtener kg/l reales
-      // Si el consumo está en litros/kg → dividir por tamano para obtener cantidad de envases
-      let cantidadReal, unidadReal;
-      if (tamanoNum) {
-        if (consumidoUnidad === 'u') {
-          cantidadReal = consumido * tamanoNum;
-          unidadReal = tamanoUnit || mat.unidad;
-        } else {
-          cantidadReal = consumido / tamanoNum;
-          unidadReal = 'u';
-        }
-      } else {
-        cantidadReal = consumido;
-        unidadReal = consumidoUnidad;
-      }
-      // Para materiales en 'u' (bolsas): ratio = cantidadReal(kg) / m²  → kg/m²
-      // Para materiales en 'l'       : ratio = consumido(l)    / m²  → l/m²
-      const ratioBase = consumidoUnidad === 'u' ? cantidadReal : consumido;
-      const ratioUnidad = consumidoUnidad === 'u' ? (tamanoUnit || mat.unidad) : consumidoUnidad;
+      const esConteo = UNIDADES_CONTEO.includes((unidadConsumo || '').toLowerCase());
+      const cantidadReal = esConteo && tamanoNum ? consumido * tamanoNum : consumido;
+      const unidadReal   = esConteo && tamanoNum ? tamanoUnit : unidadConsumo;
       return {
-        nombre: mat.nombre,
-        unidad: mat.unidad,
-        tamano: mat.tamano || '',
+        nombre:    mat.nombre,
+        unidad:    unidadConsumo,
+        tamano:    mat.tamano || '',
         tamanoNum,
-        consumidoUnidad,
         tiposTarea: mat.tiposTarea,
         consumido: parseFloat(consumido.toFixed(3)),
         cantidadReal: parseFloat(cantidadReal.toFixed(3)),
         unidadReal,
-        m2: parseFloat(m2.toFixed(2)),
-        ratio: m2 > 0 && ratioBase > 0 ? parseFloat((ratioBase / m2).toFixed(4)) : null,
-        ratioUnidad,
+        m2:        parseFloat(m2.toFixed(2)),
+        ratio:     m2 > 0 && cantidadReal > 0 ? parseFloat((cantidadReal / m2).toFixed(4)) : null,
       };
     });
 
@@ -673,26 +652,11 @@ export default function PanelPage() {
                         <td className="small text-end">
                           {r.consumido > 0 ? (
                             <div>
-                              {r.consumidoUnidad === 'u' ? (
-                                // Bolsas: primario = bolsas, secundario = kg/l reales
-                                <>
-                                  <span className="fw-bold text-primary">{r.consumido.toLocaleString('es-AR')} {r.unidad}</span>
-                                  {r.tamanoNum && (
-                                    <div className="text-muted" style={{ fontSize: 11 }}>
-                                      = {r.cantidadReal.toLocaleString('es-AR')} {r.unidadReal}
-                                    </div>
-                                  )}
-                                </>
-                              ) : (
-                                // Litros: primario = envases (÷ tamano), secundario = litros reales
-                                <>
-                                  <span className="fw-bold text-primary">{r.cantidadReal.toLocaleString('es-AR')} u</span>
-                                  {r.tamanoNum && (
-                                    <div className="text-muted" style={{ fontSize: 11 }}>
-                                      = {r.consumido.toLocaleString('es-AR')} {r.consumidoUnidad}
-                                    </div>
-                                  )}
-                                </>
+                              <span className="fw-bold text-primary">{r.consumido.toLocaleString('es-AR')} {r.unidad}</span>
+                              {r.tamanoNum && (
+                                <div className="text-muted" style={{ fontSize: 11 }}>
+                                  = {r.cantidadReal.toLocaleString('es-AR')} {r.unidadReal}
+                                </div>
                               )}
                             </div>
                           ) : <span className="text-muted">—</span>}
@@ -706,7 +670,7 @@ export default function PanelPage() {
                           {r.ratio !== null
                             ? (
                               <span className="badge bg-success fs-6 px-2 py-1">
-                                {r.ratio.toLocaleString('es-AR')} {r.ratioUnidad}/m²
+                                {r.ratio.toLocaleString('es-AR')} {r.unidadReal}/m²
                               </span>
                             )
                             : <span className="text-muted small">Sin datos aún</span>}
