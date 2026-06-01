@@ -28,6 +28,7 @@ export function useSync() {
       const usuarioEmail = localStorage.getItem("email") || "";
       const payload = pendientesData.map((t) => ({
         idLocal: t.id,
+        turno: t.turnoId || null,
         fechaCarga: t.fechaCarga,
         fechaModificacion: t.fechaModificacion,
         usuario: t.usuario || usuarioEmail,

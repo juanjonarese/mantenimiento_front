@@ -4,8 +4,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { guardarTrabajo, obtenerTrabajoPorId } from '../db/db';
-import { obtenerClientes, subirFoto } from '../services/api';
+import { guardarTrabajo, obtenerTrabajoPorId, marcarTodosSincronizados } from '../db/db';
+import { obtenerClientes, subirFoto, sincronizarTrabajos, obtenerTiposTarea } from '../services/api';
 import { useGPS } from '../hooks/useGPS';
 import { comprimirMedia } from '../utils/comprimirMedia';
 import { TIPOS_TRABAJO, ESTADOS_OPERATIVO, ESTADOS_ADMIN } from '../constants';
@@ -56,6 +56,7 @@ export default function NuevoTrabajoPage() {
   const [guardadoOk, setGuardadoOk] = useState(false);
   const [clientes, setClientes] = useState([]);
   const [cargandoClientes, setCargandoClientes] = useState(true);
+  const [tiposTarea, setTiposTarea] = useState(TIPOS_TRABAJO);
 
   // Modal
   const [busqueda, setBusqueda] = useState('');
@@ -79,6 +80,12 @@ export default function NuevoTrabajoPage() {
       .then(({ clientes: c }) => setClientes(c || []))
       .catch(() => {})
       .finally(() => setCargandoClientes(false));
+    obtenerTiposTarea()
+      .then(({ tipos: t }) => {
+        const nombres = (t || []).filter((tt) => tt.activo).map((tt) => tt.nombre);
+        if (nombres.length > 0) setTiposTarea(nombres);
+      })
+      .catch(() => { /* fallback: mantiene TIPOS_TRABAJO del estado inicial */ });
   }, []);
 
   useEffect(() => {
@@ -298,6 +305,7 @@ export default function NuevoTrabajoPage() {
           fotos: t.fotos || [],
         };
       });
+
       const trabajo = {
         id: esEdicion ? Number(id) : Date.now(),
         fechaCarga: esEdicion ? trabajoBase.fechaCarga : new Date().toISOString(),
@@ -321,6 +329,42 @@ export default function NuevoTrabajoPage() {
         sincronizado: false,
       };
       await guardarTrabajo(trabajo);
+
+      // Sincronizar inmediatamente si hay conexión (no esperar al ciclo de useSync)
+      if (navigator.onLine) {
+        try {
+          const email = localStorage.getItem('email') || '';
+          await sincronizarTrabajos([{
+            idLocal:           trabajo.id,
+            fechaCarga:        trabajo.fechaCarga,
+            fechaModificacion: trabajo.fechaModificacion,
+            usuario:           trabajo.usuario || email,
+            lat:               trabajo.lat,
+            lng:               trabajo.lng,
+            clienteId:         trabajo.clienteId,
+            clienteNombre:     trabajo.clienteNombre,
+            calle1:            trabajo.calle1,
+            calle2:            trabajo.calle2,
+            turno:             trabajo.turnoId || null,
+            items:             trabajo.items,
+            materiales:        trabajo.materiales || [],
+            superficie:        trabajo.superficie,
+            estadoOperativo:   trabajo.estadoOperativo,
+            estadoAdmin:       trabajo.estadoAdmin,
+            observaciones:     trabajo.observaciones,
+            linkDrive:         trabajo.linkDrive,
+            linkMyMaps:        trabajo.linkMyMaps,
+            fotos:             (trabajo.fotos || []).map(({ nombre, tipo, driveUrl, subido }) => ({
+              nombre, tipo, driveUrl: driveUrl || null, subido: subido || false,
+            })),
+            cantFotos:         (trabajo.fotos || []).length,
+          }]);
+          await marcarTodosSincronizados([trabajo.id]);
+        } catch {
+          // Sin conexión o error → quedará pendiente para el próximo intento de useSync
+        }
+      }
+
       const rol = localStorage.getItem('rol');
       if (rol === 'supervisor') {
         setGuardadoOk(true);
@@ -753,7 +797,7 @@ export default function NuevoTrabajoPage() {
                   <select className="form-select" name="tipoTrabajo"
                     value={modalForm.tipoTrabajo} onChange={handleModalChange}>
                     <option value="">Seleccioná...</option>
-                    {TIPOS_TRABAJO.map((t) => <option key={t}>{t}</option>)}
+                    {tiposTarea.map((t) => <option key={t}>{t}</option>)}
                   </select>
                 </div>
 
