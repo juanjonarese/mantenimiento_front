@@ -469,7 +469,7 @@ export default function PanelPage() {
                         <XAxis dataKey="fecha" tick={{ fontSize: 11 }} />
                         <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
                         <Tooltip />
-                        <Bar dataKey="cantidad" fill="#0d6efd" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="cantidad" fill="#dc3545" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   )}
