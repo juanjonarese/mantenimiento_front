@@ -20,15 +20,15 @@ const NOMBRES_SUGERIDOS = [
 const MODAL_VACIO = { codigo: '', nombre: '', stock: '', unidad: 'litros', tamano: '', tiposTarea: [] };
 const HOY = new Date().toISOString().split('T')[0];
 
-function fmtNum(n) {
+function fmtNum(n, decimals = 2) {
   if (!n) return '0';
-  const val = parseFloat(parseFloat(n).toFixed(2));
+  const val = parseFloat(parseFloat(n).toFixed(decimals));
   return val.toString();
 }
 
 function DisponibleBadge({ value }) {
   const cls = value <= 0 ? 'bg-danger' : value < 10 ? 'bg-warning text-dark' : 'bg-success';
-  return <span className={`badge ${cls} px-3 py-2`} style={{ fontSize: 14 }}>{fmtNum(value)}</span>;
+  return <span className={`badge ${cls} px-3 py-2`} style={{ fontSize: 14 }}>{fmtNum(value, 1)}</span>;
 }
 
 export default function MaterialesPage() {
@@ -377,10 +377,10 @@ export default function MaterialesPage() {
                         </td>
                         <td className="d-none d-md-table-cell text-muted">{mat.unidad}</td>
                         <td className="text-center d-none d-sm-table-cell">
-                          <span className="fw-semibold text-success">{fmtNum(cargado)}</span>
+                          <span className="fw-semibold text-success">{fmtNum(cargado, 1)}</span>
                         </td>
                         <td className="text-center d-none d-sm-table-cell">
-                          <span className="fw-semibold text-danger">{fmtNum(consumido)}</span>
+                          <span className="fw-semibold text-danger">{fmtNum(consumido, 1)}</span>
                         </td>
                         <td className="text-center">
                           <DisponibleBadge value={disponible} />
