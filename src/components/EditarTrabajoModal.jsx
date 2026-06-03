@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { actualizarTrabajoBackend } from '../services/api';
+import { actualizarTrabajoBackend, obtenerMaterialesCatalogo } from '../services/api';
 import { guardarTrabajo } from '../db/db';
 import { ESTADOS_OPERATIVO, ESTADOS_ADMIN } from '../constants';
 
@@ -27,13 +27,28 @@ function numVal(v) {
   return isNaN(n) ? 0 : n;
 }
 
-function getMat(materiales, nombre) {
-  const n = nombre.toLowerCase();
-  return materiales?.find((m) => m.nombre?.toLowerCase().includes(n))?.cantidad ?? 0;
-}
-
 function getSup(items, tipo) {
   return items?.find((i) => i.tipoTrabajo === tipo)?.superficie ?? 0;
+}
+
+const normStr = (s) =>
+  (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+
+function matchMat(catalogName, jobName) {
+  const na = normStr(catalogName);
+  const nb = normStr(jobName);
+  if (na === nb) return true;
+  const key = na.split(/\s+/).filter((w) => w.length >= 6).sort((x, y) => y.length - x.length)[0];
+  return key ? nb.includes(key) : false;
+}
+
+function initCantidades(catalogo, materiales) {
+  const result = {};
+  catalogo.forEach((cat) => {
+    const match = (materiales || []).find((m) => matchMat(cat.nombre, m.nombre));
+    result[cat._id] = match ? String(match.cantidad) : '';
+  });
+  return result;
 }
 
 const DEFAULT_LAT = -26.8241;
@@ -44,28 +59,36 @@ export default function EditarTrabajoModal({ trabajo, onClose, onGuardado }) {
   const lng0 = trabajo.lng || DEFAULT_LNG;
 
   const [form, setForm] = useState({
-    fechaCarga: trabajo.fechaCarga
-      ? new Date(trabajo.fechaCarga).toISOString().split('T')[0]
-      : '',
-    calle1:        trabajo.calle1 || '',
-    calle2:        trabajo.calle2 || '',
-    lat:           lat0,
-    lng:           lng0,
-    sendas:        getSup(trabajo.items, 'SENDAS'),
-    rampas:        getSup(trabajo.items, 'RAMPAS'),
-    cordones:      getSup(trabajo.items, 'CORDONES'),
-    bolsasTermo:   getMat(trabajo.materiales, 'termoplást'),
-    bolsasMicro:   getMat(trabajo.materiales, 'microesfera'),
-    litrosImprim:  getMat(trabajo.materiales, 'imprimac'),
-    litrosPintura: getMat(trabajo.materiales, 'acrílica'),
+    fechaCarga:      trabajo.fechaCarga ? new Date(trabajo.fechaCarga).toISOString().split('T')[0] : '',
+    calle1:          trabajo.calle1 || '',
+    calle2:          trabajo.calle2 || '',
+    lat:             lat0,
+    lng:             lng0,
+    sendas:          getSup(trabajo.items, 'SENDAS'),
+    rampas:          getSup(trabajo.items, 'RAMPAS'),
+    cordones:        getSup(trabajo.items, 'CORDONES'),
     estadoOperativo: trabajo.estadoOperativo || 'Sin iniciar',
     estadoAdmin:     trabajo.estadoAdmin     || 'Sin certificar',
     observaciones:   trabajo.observaciones   || '',
   });
 
-  const [guardando, setGuardando] = useState(false);
-  const [error, setError]         = useState('');
+  const [catalogo, setCatalogo]         = useState([]);
+  const [cantidades, setCantidades]     = useState({});
+  const [cargandoCat, setCargandoCat]   = useState(true);
+  const [guardando, setGuardando]       = useState(false);
+  const [error, setError]               = useState('');
   const mapaKey = useRef(`${lat0},${lng0}`);
+
+  useEffect(() => {
+    obtenerMaterialesCatalogo()
+      .then(({ materiales: cats }) => {
+        const lista = cats || [];
+        setCatalogo(lista);
+        setCantidades(initCantidades(lista, trabajo.materiales));
+      })
+      .catch(() => {})
+      .finally(() => setCargandoCat(false));
+  }, []);
 
   function set(field, val) {
     setForm((prev) => ({ ...prev, [field]: val }));
@@ -86,11 +109,13 @@ export default function EditarTrabajoModal({ trabajo, onClose, onGuardado }) {
       if (numVal(form.rampas)   > 0) items.push({ tipoTrabajo: 'RAMPAS',   superficie: numVal(form.rampas) });
       if (numVal(form.cordones) > 0) items.push({ tipoTrabajo: 'CORDONES', superficie: numVal(form.cordones) });
 
-      const materiales = [];
-      if (numVal(form.bolsasTermo)   > 0) materiales.push({ nombre: 'Bolsas termoplástica', cantidad: numVal(form.bolsasTermo),   unidad: 'u' });
-      if (numVal(form.bolsasMicro)   > 0) materiales.push({ nombre: 'Bolsas microesferas',  cantidad: numVal(form.bolsasMicro),   unidad: 'u' });
-      if (numVal(form.litrosImprim)  > 0) materiales.push({ nombre: 'Imprimación',           cantidad: numVal(form.litrosImprim),  unidad: 'l' });
-      if (numVal(form.litrosPintura) > 0) materiales.push({ nombre: 'Pintura acrílica',      cantidad: numVal(form.litrosPintura), unidad: 'l' });
+      const materiales = catalogo
+        .filter((cat) => numVal(cantidades[cat._id]) > 0)
+        .map((cat) => ({
+          nombre:   cat.nombre,
+          cantidad: numVal(cantidades[cat._id]),
+          unidad:   cat.unidad,
+        }));
 
       const datos = {
         fechaCarga:        form.fechaCarga ? new Date(form.fechaCarga) : trabajo.fechaCarga,
@@ -191,23 +216,15 @@ export default function EditarTrabajoModal({ trabajo, onClose, onGuardado }) {
             <div className="row g-2 mb-3">
               <div className="col-6">
                 <label className="form-label small fw-semibold">Latitud</label>
-                <input
-                  type="text"
-                  className="form-control form-control-sm font-monospace"
-                  value={form.lat}
-                  onChange={(e) => handleLatLngInput('lat', e.target.value)}
-                  placeholder="-26.8286"
-                />
+                <input type="text" className="form-control form-control-sm font-monospace"
+                  value={form.lat} onChange={(e) => handleLatLngInput('lat', e.target.value)}
+                  placeholder="-26.8286" />
               </div>
               <div className="col-6">
                 <label className="form-label small fw-semibold">Longitud</label>
-                <input
-                  type="text"
-                  className="form-control form-control-sm font-monospace"
-                  value={form.lng}
-                  onChange={(e) => handleLatLngInput('lng', e.target.value)}
-                  placeholder="-65.2026"
-                />
+                <input type="text" className="form-control form-control-sm font-monospace"
+                  value={form.lng} onChange={(e) => handleLatLngInput('lng', e.target.value)}
+                  placeholder="-65.2026" />
               </div>
             </div>
 
@@ -223,22 +240,39 @@ export default function EditarTrabajoModal({ trabajo, onClose, onGuardado }) {
               ))}
             </div>
 
-            {/* Materiales */}
-            <p className="fw-semibold small text-muted mb-1">Materiales</p>
-            <div className="row g-2 mb-3">
-              {[
-                ['bolsasTermo',  'Bolsas termo (u)'],
-                ['bolsasMicro',  'Bolsas microesf. (u)'],
-                ['litrosImprim', 'Imprimación (l)'],
-                ['litrosPintura','Pintura acrílica (l)'],
-              ].map(([k, label]) => (
-                <div key={k} className="col-6 col-md-3">
-                  <label className="form-label small fw-semibold">{label}</label>
-                  <input type="number" step="0.1" min="0" className="form-control form-control-sm"
-                    value={form[k]} onChange={(e) => set(k, e.target.value)} />
-                </div>
-              ))}
-            </div>
+            {/* Materiales — dinámico desde el catálogo */}
+            <p className="fw-semibold small text-muted mb-1">
+              <i className="bi bi-box-seam me-1"></i>Materiales
+            </p>
+            {cargandoCat ? (
+              <div className="d-flex align-items-center gap-2 text-muted small mb-3">
+                <span className="spinner-border spinner-border-sm"></span>Cargando materiales...
+              </div>
+            ) : catalogo.length === 0 ? (
+              <p className="text-muted small mb-3">No hay materiales en el catálogo.</p>
+            ) : (
+              <div className="row g-2 mb-3">
+                {catalogo.map((cat) => (
+                  <div key={cat._id} className="col-6 col-md-4 col-lg-3">
+                    <label className="form-label small fw-semibold" title={cat.nombre}>
+                      {cat.nombre}
+                      <span className="text-muted fw-normal ms-1">({cat.unidad})</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      className="form-control form-control-sm"
+                      value={cantidades[cat._id] ?? ''}
+                      placeholder="0"
+                      onChange={(e) =>
+                        setCantidades((prev) => ({ ...prev, [cat._id]: e.target.value }))
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Estados */}
             <div className="row g-2 mb-3">

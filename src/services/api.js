@@ -247,6 +247,40 @@ export const eliminarMaterialCatalogo = async (id) => {
   return handleResponse(response);
 };
 
+export const obtenerConsumoMaterialesTrabajos = async () => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/trabajos/consumo-materiales`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return handleResponse(response);
+};
+
+export const obtenerTotalesEntradas = async () => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/materiales/totales-entradas`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return handleResponse(response);
+};
+
+export const registrarEntradaStock = async (materialId, datos) => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/materiales/${materialId}/entrada`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(datos),
+  });
+  return handleResponse(response);
+};
+
+export const obtenerHistorialEntradas = async (materialId) => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/materiales/${materialId}/entradas`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return handleResponse(response);
+};
+
 // ============= CLIENTES =============
 
 export const obtenerClientes = async () => {
