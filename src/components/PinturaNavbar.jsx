@@ -28,15 +28,16 @@ export default function PinturaNavbar() {
   const handleLogout = async () => {
     const turnoId = localStorage.getItem('turnoId');
     if (rol === 'supervisor' && turnoId) {
-      await Swal.fire({
-        title: 'Turno activo',
-        text: 'Tenés un turno abierto. Cerrá el turno antes de cerrar sesión.',
-        icon: 'warning',
-        confirmButtonColor: '#dc3545',
-        confirmButtonText: 'Ir a cerrar turno',
+      const { isConfirmed } = await Swal.fire({
+        title: 'Cerrar sesión',
+        text: 'Tu turno seguirá abierto. Al volver a ingresar podrás retomarlo con todos los trabajos cargados.',
+        icon: 'info',
+        showCancelButton: true,
+        confirmButtonColor: '#0d6efd',
+        cancelButtonText: 'Cancelar',
+        confirmButtonText: 'Cerrar sesión',
       });
-      navigate('/cerrar-turno');
-      return;
+      if (!isConfirmed) return;
     }
     localStorage.clear();
     navigate('/login');

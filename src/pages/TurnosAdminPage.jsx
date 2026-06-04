@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import Swal from 'sweetalert2';
-import { obtenerTurnosConTrabajos, eliminarTurnos } from '../services/api';
+import { obtenerTurnosConTrabajos, eliminarTurnos, obtenerTrabajosPorTurno } from '../services/api';
 
 function fmtFecha(d) {
   if (!d) return '—';
@@ -109,6 +109,10 @@ export default function TurnosAdminPage() {
   const [panelAbierto, setPanelAbierto] = useState(false);
   const [seleccionados, setSeleccionados] = useState(new Set());
   const [eliminando, setEliminando] = useState(false);
+  const [modalTurno, setModalTurno] = useState(null);
+  const [trabajosModal, setTrabajosModal] = useState([]);
+  const [cargandoModal, setCargandoModal] = useState(false);
+  const [expandidos, setExpandidos] = useState(new Set());
 
   useEffect(() => {
     obtenerTurnosConTrabajos()
@@ -179,6 +183,29 @@ export default function TurnosAdminPage() {
     } else {
       setSeleccionados(new Set(lista.map((t) => t._id)));
     }
+  }
+
+  async function abrirModalTrabajos(turno) {
+    setModalTurno(turno);
+    setTrabajosModal([]);
+    setExpandidos(new Set());
+    setCargandoModal(true);
+    try {
+      const { trabajos } = await obtenerTrabajosPorTurno(turno._id);
+      setTrabajosModal(trabajos || []);
+    } catch {
+      setTrabajosModal([]);
+    } finally {
+      setCargandoModal(false);
+    }
+  }
+
+  function toggleExpandido(id) {
+    setExpandidos((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
   }
 
   async function handleEliminar() {
@@ -456,7 +483,19 @@ export default function TurnosAdminPage() {
                       {/* Métricas */}
                       <div className="d-flex gap-3 text-center">
                         <div>
-                          <div className="fw-bold fs-5 text-primary">{turno.cantidadTrabajos}</div>
+                          {turno.cantidadTrabajos > 0 ? (
+                            <button
+                              type="button"
+                              className="btn btn-link p-0 fw-bold fs-5 text-primary text-decoration-none"
+                              style={{ lineHeight: 1 }}
+                              title="Ver detalle de trabajos"
+                              onClick={() => abrirModalTrabajos(turno)}
+                            >
+                              {turno.cantidadTrabajos}
+                            </button>
+                          ) : (
+                            <div className="fw-bold fs-5 text-primary">{turno.cantidadTrabajos}</div>
+                          )}
                           <div className="text-muted" style={{ fontSize: 11 }}>trabajos</div>
                         </div>
                         <div>
@@ -497,6 +536,255 @@ export default function TurnosAdminPage() {
           </div>
         )}
       </div>
+
+      {/* MODAL TRABAJOS DEL TURNO */}
+      {modalTurno && (
+        <>
+          <div className="modal d-block" tabIndex="-1" style={{ background: 'rgba(0,0,0,0.5)' }}>
+            <div className="modal-dialog modal-lg modal-dialog-scrollable">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <div>
+                    <h5 className="modal-title mb-0">
+                      <i className="bi bi-tools me-2 text-primary"></i>
+                      Trabajos del turno
+                    </h5>
+                    <small className="text-muted">
+                      {modalTurno.supervisor
+                        ? `${modalTurno.supervisor.nombre} ${modalTurno.supervisor.apellido}`.trim()
+                        : 'Sin supervisor'}
+                      {' · '}
+                      {fmtFecha(modalTurno.fechaInicio)}
+                      {modalTurno.fechaFin && ` → ${fmtFecha(modalTurno.fechaFin)}`}
+                    </small>
+                  </div>
+                  <button type="button" className="btn-close" onClick={() => setModalTurno(null)}></button>
+                </div>
+                <div className="modal-body p-0">
+                  {cargandoModal ? (
+                    <div className="d-flex justify-content-center py-5">
+                      <div className="spinner-border text-primary"></div>
+                    </div>
+                  ) : trabajosModal.length === 0 ? (
+                    <div className="text-center text-muted py-5">
+                      <i className="bi bi-inbox display-5 d-block mb-2"></i>
+                      Sin trabajos registrados
+                    </div>
+                  ) : (
+                    <div className="list-group list-group-flush">
+                      {trabajosModal.map((t, i) => {
+                        const abierto = expandidos.has(t._id);
+                        const tipos = t.items?.length > 0
+                          ? t.items.map((it) => it.tipoTrabajo).filter(Boolean)
+                          : t.tipoTrabajo ? [t.tipoTrabajo] : [];
+                        const m2 = t.superficie || 0;
+                        return (
+                          <div key={t._id} className="list-group-item p-0">
+                            {/* Fila resumen — clickeable */}
+                            <button
+                              type="button"
+                              className="w-100 text-start px-4 py-3 border-0 bg-transparent"
+                              style={{ cursor: 'pointer' }}
+                              onClick={() => toggleExpandido(t._id)}
+                            >
+                              <div className="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+                                <div>
+                                  <div className="fw-semibold mb-1">
+                                    <span className="text-muted me-2" style={{ fontSize: 12 }}>#{i + 1}</span>
+                                    <i className="bi bi-signpost-2 me-1 text-muted"></i>
+                                    {t.calle1}{t.calle2 ? ` y ${t.calle2}` : ''}
+                                  </div>
+                                  <div className="d-flex flex-wrap gap-2 align-items-center">
+                                    {tipos.map((tipo) => (
+                                      <span key={tipo} className="badge bg-primary bg-opacity-10 text-primary" style={{ fontSize: 11 }}>
+                                        {tipo}
+                                      </span>
+                                    ))}
+                                    {t.clienteNombre && (
+                                      <span className="text-muted small">
+                                        <i className="bi bi-building me-1"></i>{t.clienteNombre}
+                                      </span>
+                                    )}
+                                    <span className="text-muted small">
+                                      <i className="bi bi-calendar3 me-1"></i>
+                                      {t.fechaCarga ? new Date(t.fechaCarga).toLocaleDateString('es-AR') : '—'}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="d-flex align-items-center gap-3 flex-shrink-0">
+                                  <div className="text-end">
+                                    <div className="fw-bold text-warning">{m2.toFixed(1)} m²</div>
+                                    <span className={`badge ${
+                                      t.estadoOperativo === 'Finalizado' || t.estadoOperativo === 'Terminado'
+                                        ? 'bg-success'
+                                        : t.estadoOperativo === 'En proceso'
+                                        ? 'bg-warning text-dark'
+                                        : 'bg-secondary'
+                                    }`} style={{ fontSize: 10 }}>
+                                      {t.estadoOperativo || 'Sin estado'}
+                                    </span>
+                                  </div>
+                                  <i className={`bi bi-chevron-${abierto ? 'up' : 'down'} text-muted`}></i>
+                                </div>
+                              </div>
+                            </button>
+
+                            {/* Detalle expandido */}
+                            {abierto && (
+                              <div className="px-4 pb-3 border-top" style={{ background: '#f8f9fa' }}>
+                                <div className="row g-3 pt-3">
+
+                                  {/* Items / medidas */}
+                                  {t.items?.length > 0 && (
+                                    <div className="col-12">
+                                      <p className="text-muted small fw-semibold mb-2">
+                                        <i className="bi bi-list-ul me-1"></i>Items
+                                      </p>
+                                      <div className="table-responsive">
+                                        <table className="table table-sm table-bordered mb-0" style={{ fontSize: 12 }}>
+                                          <thead className="table-light">
+                                            <tr>
+                                              <th>Tipo</th>
+                                              <th>Largo</th>
+                                              <th>Ancho</th>
+                                              <th>Cant.</th>
+                                              <th>m²</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody>
+                                            {t.items.map((it, j) => (
+                                              <tr key={j}>
+                                                <td>{it.tipoTrabajo || '—'}</td>
+                                                <td>{it.largo ?? '—'}</td>
+                                                <td>{it.ancho ?? '—'}</td>
+                                                <td>{it.cantidad ?? '—'}</td>
+                                                <td className="fw-semibold">{(it.superficie || 0).toFixed(2)}</td>
+                                              </tr>
+                                            ))}
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Campos legacy si no hay items */}
+                                  {(!t.items || t.items.length === 0) && (t.tipoTrabajo || t.largo || t.ancho) && (
+                                    <div className="col-12 col-sm-6">
+                                      <p className="text-muted small fw-semibold mb-2">
+                                        <i className="bi bi-rulers me-1"></i>Medidas
+                                      </p>
+                                      <div className="d-flex flex-wrap gap-3 small">
+                                        {t.tipoTrabajo && <span><strong>Tipo:</strong> {t.tipoTrabajo}</span>}
+                                        {t.largo != null && <span><strong>Largo:</strong> {t.largo} m</span>}
+                                        {t.ancho != null && <span><strong>Ancho:</strong> {t.ancho} m</span>}
+                                        {t.cantidad != null && <span><strong>Cant.:</strong> {t.cantidad}</span>}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Materiales */}
+                                  {t.materiales?.length > 0 && (
+                                    <div className="col-12 col-sm-6">
+                                      <p className="text-muted small fw-semibold mb-2">
+                                        <i className="bi bi-droplet me-1"></i>Materiales
+                                      </p>
+                                      <div className="d-flex flex-wrap gap-2">
+                                        {t.materiales.map((m, j) => (
+                                          <span key={j} className="badge bg-secondary bg-opacity-10 text-dark border" style={{ fontSize: 11 }}>
+                                            {m.nombre} — {m.cantidad} {m.unidad || ''}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Estado admin */}
+                                  <div className="col-12 col-sm-6">
+                                    <p className="text-muted small fw-semibold mb-2">
+                                      <i className="bi bi-clipboard-check me-1"></i>Estado administrativo
+                                    </p>
+                                    <span className={`badge ${
+                                      t.estadoAdmin === 'Certificado' ? 'bg-success'
+                                      : t.estadoAdmin === 'Facturado' ? 'bg-primary'
+                                      : t.estadoAdmin === 'Rechazado' ? 'bg-danger'
+                                      : t.estadoAdmin === 'En revisión' ? 'bg-warning text-dark'
+                                      : 'bg-secondary'
+                                    }`}>
+                                      {t.estadoAdmin || 'Sin certificar'}
+                                    </span>
+                                    {t.motivoRechazo && (
+                                      <p className="text-danger small mt-1 mb-0">
+                                        <i className="bi bi-x-circle me-1"></i>{t.motivoRechazo}
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  {/* Usuario / fotos */}
+                                  <div className="col-12 col-sm-6">
+                                    <p className="text-muted small fw-semibold mb-2">
+                                      <i className="bi bi-info-circle me-1"></i>Datos adicionales
+                                    </p>
+                                    <div className="small d-flex flex-wrap gap-3">
+                                      {t.usuario && <span><i className="bi bi-person me-1 text-muted"></i>{t.usuario}</span>}
+                                      {t.cantFotos > 0 && <span><i className="bi bi-images me-1 text-muted"></i>{t.cantFotos} foto{t.cantFotos !== 1 ? 's' : ''}</span>}
+                                      {t.expedienteMunicipal && <span><i className="bi bi-file-earmark-text me-1 text-muted"></i>{t.expedienteMunicipal}</span>}
+                                      {t.nroFactura && <span><i className="bi bi-receipt me-1 text-muted"></i>Fact. {t.nroFactura}</span>}
+                                    </div>
+                                  </div>
+
+                                  {/* Observaciones */}
+                                  {t.observaciones && (
+                                    <div className="col-12">
+                                      <p className="text-muted small fw-semibold mb-1">
+                                        <i className="bi bi-chat-left-text me-1"></i>Observaciones
+                                      </p>
+                                      <p className="small mb-0">{t.observaciones}</p>
+                                    </div>
+                                  )}
+
+                                  {/* Links */}
+                                  {(t.linkDrive || t.linkMyMaps) && (
+                                    <div className="col-12">
+                                      <div className="d-flex gap-2 flex-wrap">
+                                        {t.linkDrive && (
+                                          <a href={t.linkDrive} target="_blank" rel="noopener noreferrer"
+                                            className="btn btn-sm btn-outline-secondary" style={{ fontSize: 12 }}>
+                                            <i className="bi bi-cloud me-1"></i>Drive
+                                          </a>
+                                        )}
+                                        {t.linkMyMaps && (
+                                          <a href={t.linkMyMaps} target="_blank" rel="noopener noreferrer"
+                                            className="btn btn-sm btn-outline-secondary" style={{ fontSize: 12 }}>
+                                            <i className="bi bi-map me-1"></i>MyMaps
+                                          </a>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+                <div className="modal-footer">
+                  <span className="text-muted small me-auto">
+                    {trabajosModal.length} trabajo{trabajosModal.length !== 1 ? 's' : ''}
+                    {trabajosModal.length > 0 && ` · ${trabajosModal.reduce((s, t) => s + (t.superficie || 0), 0).toFixed(1)} m² total`}
+                  </span>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setModalTurno(null)}>
+                    Cerrar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

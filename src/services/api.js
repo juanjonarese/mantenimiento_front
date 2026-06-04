@@ -132,6 +132,14 @@ export const obtenerTrabajosBackend = async (filtros = {}) => {
   }
 };
 
+export const obtenerTrabajosPorTurno = async (turnoId) => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/trabajos?turno=${turnoId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return handleResponse(response);
+};
+
 export const actualizarTrabajoBackend = async (id, datos) => {
   const token = localStorage.getItem("token");
   const response = await fetch(`${API_URL}/trabajos/${id}`, {

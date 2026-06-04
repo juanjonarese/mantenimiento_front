@@ -73,7 +73,9 @@ export default function NuevoTrabajoPage() {
 
   const mapaKeyRef = useRef('default');
   const fileRef = useRef();
+  const cameraRef = useRef();
   const modalFileRef = useRef();
+  const modalCameraRef = useRef();
   const esEdicion = Boolean(id);
   const esAdmin = true;
 
@@ -702,13 +704,21 @@ export default function NuevoTrabajoPage() {
             <i className="bi bi-camera me-1"></i> Fotos y videos
           </div>
           <div className="card-body">
-            <button type="button" className="btn btn-outline-secondary w-100 mb-3"
-              onClick={() => fileRef.current.click()} disabled={comprimiendo}>
-              {comprimiendo
-                ? <><span className="spinner-border spinner-border-sm me-2"></span>Comprimiendo...</>
-                : <><i className="bi bi-upload me-2"></i>Adjuntar fotos / videos</>}
-            </button>
+            <div className="d-flex gap-2 mb-3">
+              <button type="button" className="btn btn-outline-secondary flex-fill"
+                onClick={() => fileRef.current.click()} disabled={comprimiendo}>
+                {comprimiendo
+                  ? <><span className="spinner-border spinner-border-sm me-2"></span>Comprimiendo...</>
+                  : <><i className="bi bi-upload me-2"></i>Adjuntar archivo</>}
+              </button>
+              <button type="button" className="btn btn-outline-primary flex-fill"
+                onClick={() => cameraRef.current.click()} disabled={comprimiendo}>
+                <i className="bi bi-camera me-2"></i>Tomar foto
+              </button>
+            </div>
             <input ref={fileRef} type="file" multiple accept="image/*,video/*"
+              className="d-none" onChange={handleFotos} />
+            <input ref={cameraRef} type="file" accept="image/*"
               capture="environment" className="d-none" onChange={handleFotos} />
             {fotosExistentes.length > 0 && (
               <div className="mb-2">
@@ -858,21 +868,38 @@ export default function NuevoTrabajoPage() {
                   <div className="small fw-semibold mb-2">
                     <i className="bi bi-camera me-1"></i>Fotos / videos de esta tarea
                   </div>
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary w-100 mb-2"
-                    onClick={() => modalFileRef.current.click()}
-                    disabled={comprimiendo}
-                  >
-                    {comprimiendo
-                      ? <><span className="spinner-border spinner-border-sm me-2"></span>Comprimiendo...</>
-                      : <><i className="bi bi-camera me-1"></i>Adjuntar foto o video</>}
-                  </button>
+                  <div className="d-flex gap-2 mb-2">
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary flex-fill"
+                      onClick={() => modalFileRef.current.click()}
+                      disabled={comprimiendo}
+                    >
+                      {comprimiendo
+                        ? <><span className="spinner-border spinner-border-sm me-2"></span>Comprimiendo...</>
+                        : <><i className="bi bi-upload me-1"></i>Adjuntar archivo</>}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-outline-primary flex-fill"
+                      onClick={() => modalCameraRef.current.click()}
+                      disabled={comprimiendo}
+                    >
+                      <i className="bi bi-camera me-1"></i>Tomar foto
+                    </button>
+                  </div>
                   <input
                     ref={modalFileRef}
                     type="file"
                     multiple
                     accept="image/*,video/*"
+                    className="d-none"
+                    onChange={handleFotosModal}
+                  />
+                  <input
+                    ref={modalCameraRef}
+                    type="file"
+                    accept="image/*"
                     capture="environment"
                     className="d-none"
                     onChange={handleFotosModal}

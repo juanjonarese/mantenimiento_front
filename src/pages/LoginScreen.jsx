@@ -55,7 +55,7 @@ const LoginScreen = () => {
           const { turno } = await obtenerTurnoActivo();
           if (turno) {
             localStorage.setItem("turnoId", turno._id);
-            navigate("/cerrar-turno?pendiente=1");
+            navigate("/turno");
           } else {
             const { turno: nuevoTurno } = await abrirTurno();
             localStorage.setItem("turnoId", nuevoTurno._id);
