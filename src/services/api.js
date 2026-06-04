@@ -336,6 +336,24 @@ export const obtenerConsumoMateriales = async () => {
   return handleResponse(response);
 };
 
+export const eliminarTurnos = async (ids) => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/turnos`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ ids }),
+  });
+  return handleResponse(response);
+};
+
+export const obtenerTurnosConTrabajos = async () => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/turnos/con-trabajos`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return handleResponse(response);
+};
+
 // ============= TIPOS DE TAREA =============
 
 export const obtenerTiposTarea = async (todos = false) => {

@@ -17,6 +17,7 @@ const TiposTareaPage      = lazy(() => import("./pages/TiposTareaPage"));
 const ClientesPage        = lazy(() => import("./pages/ClientesPage"));
 const TurnoPage           = lazy(() => import("./pages/TurnoPage"));
 const CerrarTurnoPage     = lazy(() => import("./pages/CerrarTurnoPage"));
+const TurnosAdminPage     = lazy(() => import("./pages/TurnosAdminPage"));
 
 const Spinner = () => (
   <div className="d-flex justify-content-center align-items-center" style={{ height: '60vh' }}>
@@ -85,6 +86,11 @@ function App() {
         <Route path="/clientes" element={
           <ProtectedRoute roles={['admin']}><Layout fullWidth>
             <Suspense fallback={<Spinner />}><ClientesPage /></Suspense>
+          </Layout></ProtectedRoute>
+        } />
+        <Route path="/turnos" element={
+          <ProtectedRoute roles={['admin']}><Layout fullWidth>
+            <Suspense fallback={<Spinner />}><TurnosAdminPage /></Suspense>
           </Layout></ProtectedRoute>
         } />
 

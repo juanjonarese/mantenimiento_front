@@ -13,6 +13,7 @@ const NAV_LINKS = [
   { to: '/materiales',     icon: 'box-seam',         label: 'Materiales',     roles: ['admin']                        },
   { to: '/tipos-tarea',    icon: 'tags',             label: 'Tipos de tarea', roles: ['admin']                        },
   { to: '/clientes',       icon: 'person-vcard',     label: 'Clientes',       roles: ['admin']                        },
+  { to: '/turnos',         icon: 'clock-history',    label: 'Turnos',         roles: ['admin']                        },
   { to: '/cerrar-turno',   icon: 'door-closed',      label: 'Cerrar turno',   roles: ['supervisor']                   },
 ];
 
