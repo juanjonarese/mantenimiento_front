@@ -57,6 +57,8 @@ export default function NuevoTrabajoPage() {
   const [clientes, setClientes] = useState([]);
   const [cargandoClientes, setCargandoClientes] = useState(true);
   const [tiposTarea, setTiposTarea] = useState(TIPOS_TRABAJO);
+  const [geocodificando, setGeocodificando] = useState(false);
+  const geocodeTimer = useRef(null);
 
   // Modal
   const [busqueda, setBusqueda] = useState('');
@@ -119,6 +121,7 @@ export default function NuevoTrabajoPage() {
           const lng = pos.lng.toFixed(6);
           mapaKeyRef.current = `${lat},${lng}`;
           setForm((prev) => ({ ...prev, lat, lng }));
+          reverseGeocode(lat, lng);
         } else {
           setGpsFallo(true);
         }
@@ -141,11 +144,27 @@ export default function NuevoTrabajoPage() {
     setForm((prev) => ({ ...prev, clienteId, clienteNombre: cliente?.nombre || '' }));
   }
 
+  async function reverseGeocode(lat, lng) {
+    setGeocodificando(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=es`,
+        { headers: { 'Accept-Language': 'es' } }
+      );
+      const data = await res.json();
+      const addr = data.address || {};
+      const calle = [addr.road, addr.house_number].filter(Boolean).join(' ') || addr.suburb || addr.neighbourhood || '';
+      if (calle) setForm((prev) => ({ ...prev, calle1: calle }));
+    } catch { /* si falla, el usuario completa manualmente */ }
+    finally { setGeocodificando(false); }
+  }
+
   async function handleGPS() {
     const pos = await obtenerUbicacion();
     if (pos) {
       setGpsFallo(false);
       setForm((prev) => ({ ...prev, lat: pos.lat.toFixed(6), lng: pos.lng.toFixed(6) }));
+      reverseGeocode(pos.lat.toFixed(6), pos.lng.toFixed(6));
     }
   }
 
@@ -288,7 +307,7 @@ export default function NuevoTrabajoPage() {
     e.preventDefault();
     setErrorForm('');
     if (!form.clienteId) return setErrorForm('Seleccioná el cliente');
-    if (!form.calle1 || !form.calle2) return setErrorForm('Ingresá las dos calles de la intersección');
+    if (!form.calle1) return setErrorForm('Ingresá al menos la dirección principal');
     if (form.trabajos.length === 0) return setErrorForm('Agregá al menos un trabajo');
     if (!form.lat || !form.lng) return setErrorForm('Tomá la ubicación GPS o ajustá el marcador en el mapa');
 
@@ -553,7 +572,11 @@ export default function NuevoTrabajoPage() {
                     eventHandlers={{
                       dragend: (e) => {
                         const pos = e.target.getLatLng();
-                        setForm((prev) => ({ ...prev, lat: pos.lat.toFixed(6), lng: pos.lng.toFixed(6) }));
+                        const lat = pos.lat.toFixed(6);
+                        const lng = pos.lng.toFixed(6);
+                        setForm((prev) => ({ ...prev, lat, lng }));
+                        clearTimeout(geocodeTimer.current);
+                        geocodeTimer.current = setTimeout(() => reverseGeocode(lat, lng), 800);
                       },
                     }}
                   />
@@ -575,14 +598,17 @@ export default function NuevoTrabajoPage() {
             </div>
             <div className="row g-2 mt-2">
               <div className="col-6">
-                <label className="form-label small fw-semibold">Calle 1 *</label>
+                <label className="form-label small fw-semibold">
+                  Dirección *
+                  {geocodificando && <span className="spinner-border spinner-border-sm ms-2 text-muted"></span>}
+                </label>
                 <input type="text" className="form-control" name="calle1"
-                  value={form.calle1} onChange={handleChange} placeholder="Av. Rivadavia" />
+                  value={form.calle1} onChange={handleChange} placeholder="Av. Rivadavia 1234" />
               </div>
               <div className="col-6">
-                <label className="form-label small fw-semibold">Calle 2 *</label>
+                <label className="form-label small fw-semibold text-muted">Calle transversal</label>
                 <input type="text" className="form-control" name="calle2"
-                  value={form.calle2} onChange={handleChange} placeholder="Pueyrredón" />
+                  value={form.calle2} onChange={handleChange} placeholder="Opcional" />
               </div>
             </div>
           </div>
