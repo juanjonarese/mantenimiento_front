@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaf
 import 'leaflet/dist/leaflet.css';
 import { obtenerTrabajosBackend } from '../services/api';
 import { obtenerTrabajos } from '../db/db';
+import { useUsuariosMap } from '../hooks/useUsuariosMap';
 import { COLORES_ESTADO_OP, COLORES_ESTADO_ADMIN } from '../constants';
 
 // ─── Colores de pins ────────────────────────────────────────────────────────
@@ -67,6 +68,7 @@ function FitBounds({ trabajos }) {
 
 // ─── Componente principal ────────────────────────────────────────────────────
 export default function MapaPage() {
+  const resolve = useUsuariosMap();
   const [trabajos, setTrabajos] = useState([]);
   const [filtro, setFiltro] = useState('todos');
   const esCliente = localStorage.getItem('rol') === 'cliente';
@@ -229,7 +231,7 @@ export default function MapaPage() {
                           {t.usuario && (
                             <tr>
                               <td className="text-muted p-0 pe-2">Usuario</td>
-                              <td className="p-0">{t.usuario}</td>
+                              <td className="p-0">{resolve(t.usuario)}</td>
                             </tr>
                           )}
                         </tbody>

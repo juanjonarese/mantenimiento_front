@@ -3,8 +3,10 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { obtenerTrabajoPorId, eliminarTrabajo } from '../db/db';
 import { COLORES_ESTADO_OP, COLORES_ESTADO_ADMIN } from '../constants';
+import { useUsuariosMap } from '../hooks/useUsuariosMap';
 
 export default function DetallePage() {
+  const resolve = useUsuariosMap();
   const { id } = useParams();
   const navigate = useNavigate();
   const esAdmin = localStorage.getItem('rol') === 'admin';
@@ -76,7 +78,7 @@ export default function DetallePage() {
           <div className="fw-bold fs-5 mb-1">{trabajo.calle1} y {trabajo.calle2}</div>
           <div className="text-muted small mb-2">{trabajo.lat}, {trabajo.lng}</div>
           <div className="text-muted small mb-3">
-            <i className="bi bi-person me-1"></i>{trabajo.usuario} ·{' '}
+            <i className="bi bi-person me-1"></i>{resolve(trabajo.usuario)} ·{' '}
             <i className="bi bi-clock me-1"></i>
             {new Date(trabajo.fechaCarga).toLocaleString('es-AR', {
               day: '2-digit', month: '2-digit', year: 'numeric',

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { obtenerTrabajos, guardarTrabajo, importarDesdeBackend } from '../db/db';
 import { obtenerTrabajosBackend } from '../services/api';
+import { useUsuariosMap } from '../hooks/useUsuariosMap';
 import * as XLSX from 'xlsx';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -247,6 +248,7 @@ const FILTROS = [
 ];
 
 export default function CertificacionesPage() {
+  const resolve = useUsuariosMap();
   const [trabajos, setTrabajos] = useState([]);
   const [filtro, setFiltro] = useState('pendientes');
   const [fechaDesde, setFechaDesde] = useState('');
@@ -613,7 +615,7 @@ export default function CertificacionesPage() {
                         </div>
                         <div className="text-muted small mt-1">
                           {formatFecha(t.fechaCarga)}
-                          {t.usuario ? ` · ${t.usuario}` : ''}
+                          {t.usuario ? ` · ${resolve(t.usuario)}` : ''}
                         </div>
                         <div className="mt-1 d-flex align-items-center gap-2 flex-wrap">
                           <span className={`badge bg-${cfg.color} text-${cfg.color === 'warning' ? 'dark' : 'white'}`}>

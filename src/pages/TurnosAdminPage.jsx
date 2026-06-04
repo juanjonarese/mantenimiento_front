@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import Swal from 'sweetalert2';
 import { obtenerTurnosConTrabajos, eliminarTurnos, obtenerTrabajosPorTurno } from '../services/api';
+import { useUsuariosMap } from '../hooks/useUsuariosMap';
 
 function fmtFecha(d) {
   if (!d) return '—';
@@ -102,6 +103,7 @@ const FILTROS_VACIO = {
 };
 
 export default function TurnosAdminPage() {
+  const resolve = useUsuariosMap();
   const [turnos, setTurnos]     = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError]       = useState('');
@@ -725,7 +727,7 @@ export default function TurnosAdminPage() {
                                       <i className="bi bi-info-circle me-1"></i>Datos adicionales
                                     </p>
                                     <div className="small d-flex flex-wrap gap-3">
-                                      {t.usuario && <span><i className="bi bi-person me-1 text-muted"></i>{t.usuario}</span>}
+                                      {t.usuario && <span><i className="bi bi-person me-1 text-muted"></i>{resolve(t.usuario)}</span>}
                                       {t.cantFotos > 0 && <span><i className="bi bi-images me-1 text-muted"></i>{t.cantFotos} foto{t.cantFotos !== 1 ? 's' : ''}</span>}
                                       {t.expedienteMunicipal && <span><i className="bi bi-file-earmark-text me-1 text-muted"></i>{t.expedienteMunicipal}</span>}
                                       {t.nroFactura && <span><i className="bi bi-receipt me-1 text-muted"></i>Fact. {t.nroFactura}</span>}

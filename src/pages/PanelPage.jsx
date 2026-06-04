@@ -7,6 +7,7 @@ import {
 } from 'recharts';
 import * as XLSX from 'xlsx';
 import { obtenerTrabajosBackend, obtenerEstadisticas, obtenerTodosMaterialesCatalogo, obtenerConsumoMateriales } from '../services/api';
+import { useUsuariosMap } from '../hooks/useUsuariosMap';
 import { TIPOS_TRABAJO, COLORES_ESTADO_OP, COLORES_ESTADO_ADMIN } from '../constants';
 
 const COLOR_PIN = {
@@ -65,6 +66,7 @@ function StatCard({ label, value, sub, color = 'primary', icon }) {
 const isoToDisplay = (s) => s ? s.split('-').reverse().join('/') : '';
 
 export default function PanelPage() {
+  const resolve = useUsuariosMap();
   const [trabajos, setTrabajos] = useState([]);
   const [estadisticas, setEstadisticas] = useState(null);
   const [cargando, setCargando] = useState(true);
@@ -147,11 +149,11 @@ export default function PanelPage() {
   const porOperario = (() => {
     const mapa = {};
     trabajos.forEach((t) => {
-      const u = t.usuario || 'Sin asignar';
+      const u = resolve(t.usuario) || 'Sin asignar';
       mapa[u] = (mapa[u] || 0) + (t.superficie || 0);
     });
     return Object.entries(mapa)
-      .map(([usuario, superficie]) => ({ usuario: usuario.split('@')[0], superficie: parseFloat(superficie.toFixed(1)) }))
+      .map(([usuario, superficie]) => ({ usuario, superficie: parseFloat(superficie.toFixed(1)) }))
       .sort((a, b) => b.superficie - a.superficie)
       .slice(0, 8);
   })();
@@ -236,7 +238,7 @@ export default function PanelPage() {
   const trabajosPagina = trabajos.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
 
   // ── Usuarios únicos para filtro ──
-  const usuarios = [...new Set(trabajos.map((t) => t.usuario))].sort();
+  const usuarios = [...new Set(trabajos.map((t) => t.usuario).filter(Boolean))].sort();
 
   // ── Materiales únicos para filtro ──
   const materialesUnicos = [...new Set(
@@ -250,7 +252,7 @@ export default function PanelPage() {
   function exportarExcel() {
     const filas = trabajos.map((t) => ({
       Fecha: new Date(t.fechaCarga).toLocaleString('es-AR'),
-      Usuario: t.usuario,
+      Usuario: resolve(t.usuario),
       'Calle 1': t.calle1,
       'Calle 2': t.calle2,
       Tipos: t.items ? t.items.map((i) => i.tipoTrabajo).join(', ') : (t.tipoTrabajo || ''),
@@ -372,7 +374,7 @@ export default function PanelPage() {
                 <select className="form-select form-select-sm" name="usuario"
                   value={filtros.usuario} onChange={handleFiltro}>
                   <option value="">Todos</option>
-                  {usuarios.map((u) => <option key={u}>{u}</option>)}
+                  {usuarios.map((u) => <option key={u} value={u}>{resolve(u)}</option>)}
                 </select>
               </div>
               <div className="col-6 col-md-3 col-lg-2">
@@ -762,7 +764,7 @@ export default function PanelPage() {
                           {t.items?.length > 0 ? t.items.map((i) => i.tipoTrabajo).join(', ') : t.tipoTrabajo} · {t.superficie} m²
                         </div>
                         <div className="small">{t.estadoOperativo} · {t.estadoAdmin}</div>
-                        <div className="small text-muted">{t.usuario}</div>
+                        <div className="small text-muted">{resolve(t.usuario)}</div>
                       </Popup>
                     </CircleMarker>
                   ))}
@@ -832,7 +834,7 @@ export default function PanelPage() {
                           </span>
                         </td>
                         <td className="small text-muted text-truncate" style={{ maxWidth: 120 }}>
-                          {t.usuario}
+                          {resolve(t.usuario)}
                         </td>
                         <td className="small text-center text-muted">
                           {t.cantFotos > 0

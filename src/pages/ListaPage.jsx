@@ -6,9 +6,11 @@ import { obtenerTrabajos, eliminarTrabajo, importarDesdeBackend } from '../db/db
 import { obtenerTrabajosBackend, eliminarTrabajoBackend } from '../services/api';
 import { COLORES_ESTADO_OP, COLORES_ESTADO_ADMIN } from '../constants';
 import ImportarExcelModal from '../components/ImportarExcelModal';
+import { useUsuariosMap } from '../hooks/useUsuariosMap';
 import EditarTrabajoModal from '../components/EditarTrabajoModal';
 
 export default function ListaPage() {
+  const resolve = useUsuariosMap();
   const rol = localStorage.getItem('rol');
   const esAdmin = rol === 'admin';
   const esCliente = rol === 'cliente';
@@ -114,7 +116,7 @@ export default function ListaPage() {
       'Pintura Acrílica (l)': getMat(t, 'acrílica') || '',
       'Estado operativo':   t.estadoOperativo,
       'Certificación':      t.estadoAdmin,
-      'Usuario':            t.usuario || '',
+      'Usuario':            resolve(t.usuario) || '',
       'Observaciones':      t.observaciones || '',
       'Latitud':            t.lat || '',
       'Longitud':           t.lng || '',

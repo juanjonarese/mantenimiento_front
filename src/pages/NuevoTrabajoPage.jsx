@@ -331,7 +331,7 @@ export default function NuevoTrabajoPage() {
         id: esEdicion ? Number(id) : Date.now(),
         fechaCarga: esEdicion ? trabajoBase.fechaCarga : new Date().toISOString(),
         fechaModificacion: esEdicion ? new Date().toISOString() : undefined,
-        usuario: localStorage.getItem('email') || '',
+        usuario: localStorage.getItem('nombre') || localStorage.getItem('email') || '',
         lat: parseFloat(form.lat),
         lng: parseFloat(form.lng),
         clienteId: form.clienteId,
