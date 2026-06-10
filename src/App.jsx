@@ -112,7 +112,7 @@ function App() {
         {/* Admin only */}
         <Route path="/editar/:id" element={<ProtectedRoute roles={['admin','supervisor']}><Layout><NuevoTrabajoPage /></Layout></ProtectedRoute>} />
         <Route path="/lista" element={<ProtectedRoute roles={['admin','supervisor','cliente']}><Layout fullWidth><ListaPage /></Layout></ProtectedRoute>} />
-        <Route path="/detalle/:id" element={<ProtectedRoute roles={['admin','supervisor']}><Layout><DetallePage /></Layout></ProtectedRoute>} />
+        <Route path="/detalle/:id" element={<ProtectedRoute roles={['admin','supervisor','cliente']}><Layout><DetallePage /></Layout></ProtectedRoute>} />
 
         <Route path="*" element={<RoleRedirect />} />
       </Routes>

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { actualizarTrabajoBackend, obtenerMaterialesCatalogo } from '../services/api';
+import { actualizarTrabajoBackend, obtenerMaterialesCatalogo, obtenerClientes } from '../services/api';
 import { guardarTrabajo } from '../db/db';
 import { ESTADOS_OPERATIVO, ESTADOS_ADMIN } from '../constants';
 
@@ -60,6 +60,8 @@ export default function EditarTrabajoModal({ trabajo, onClose, onGuardado }) {
 
   const [form, setForm] = useState({
     fechaCarga:      trabajo.fechaCarga ? new Date(trabajo.fechaCarga).toISOString().split('T')[0] : '',
+    clienteId:       trabajo.clienteId     || '',
+    clienteNombre:   trabajo.clienteNombre || '',
     calle1:          trabajo.calle1 || '',
     calle2:          trabajo.calle2 || '',
     lat:             lat0,
@@ -74,7 +76,9 @@ export default function EditarTrabajoModal({ trabajo, onClose, onGuardado }) {
 
   const [catalogo, setCatalogo]         = useState([]);
   const [cantidades, setCantidades]     = useState({});
+  const [clientes, setClientes]         = useState([]);
   const [cargandoCat, setCargandoCat]   = useState(true);
+  const [cargandoClientes, setCargandoClientes] = useState(true);
   const [guardando, setGuardando]       = useState(false);
   const [error, setError]               = useState('');
   const mapaKey = useRef(`${lat0},${lng0}`);
@@ -88,10 +92,21 @@ export default function EditarTrabajoModal({ trabajo, onClose, onGuardado }) {
       })
       .catch(() => {})
       .finally(() => setCargandoCat(false));
+
+    obtenerClientes()
+      .then(({ clientes: c }) => setClientes(c || []))
+      .catch(() => {})
+      .finally(() => setCargandoClientes(false));
   }, []);
 
   function set(field, val) {
     setForm((prev) => ({ ...prev, [field]: val }));
+  }
+
+  function handleClienteChange(e) {
+    const clienteId = e.target.value;
+    const cliente = clientes.find((c) => c._id === clienteId);
+    setForm((prev) => ({ ...prev, clienteId, clienteNombre: cliente?.nombre || '' }));
   }
 
   function handleLatLngInput(field, val) {
@@ -119,6 +134,8 @@ export default function EditarTrabajoModal({ trabajo, onClose, onGuardado }) {
 
       const datos = {
         fechaCarga:        form.fechaCarga ? new Date(form.fechaCarga) : trabajo.fechaCarga,
+        clienteId:         form.clienteId,
+        clienteNombre:     form.clienteNombre,
         calle1:            form.calle1.trim(),
         calle2:            form.calle2.trim(),
         lat:               numVal(form.lat),
@@ -160,6 +177,26 @@ export default function EditarTrabajoModal({ trabajo, onClose, onGuardado }) {
           </div>
 
           <div className="modal-body">
+
+            {/* Cliente */}
+            <div className="mb-3">
+              <label className="form-label small fw-semibold">
+                <i className="bi bi-person-vcard me-1"></i>Cliente
+              </label>
+              {cargandoClientes ? (
+                <div className="d-flex align-items-center gap-2 text-muted small">
+                  <span className="spinner-border spinner-border-sm"></span>Cargando clientes...
+                </div>
+              ) : (
+                <select className="form-select form-select-sm"
+                  value={form.clienteId} onChange={handleClienteChange}>
+                  <option value="">Sin cliente asignado</option>
+                  {clientes.map((c) => (
+                    <option key={c._id} value={c._id}>{c.nombre}</option>
+                  ))}
+                </select>
+              )}
+            </div>
 
             {/* Fecha + Intersección */}
             <div className="row g-2 mb-3">
