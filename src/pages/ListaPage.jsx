@@ -95,10 +95,18 @@ export default function ListaPage() {
     return t.tipoTrabajo === tipo ? (t.superficie || 0) : 0;
   };
 
-  // Extrae cantidad de un material por nombre (búsqueda parcial, sin importar mayúsculas)
+  // Normaliza: minúsculas sin acentos, para que "acrílica" matchee "Acrilica", etc.
+  const normMat = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+  // Extrae cantidad de un material por nombre (búsqueda parcial, sin importar mayúsculas/acentos)
+  // Suma tanto materiales del trabajo (legacy) como los de cada item (formato nuevo)
   const getMat = (t, nombre) => {
-    const n = nombre.toLowerCase();
-    return t.materiales?.find((m) => m.nombre?.toLowerCase().includes(n))?.cantidad || 0;
+    const n = normMat(nombre);
+    const todos = [
+      ...(t.materiales || []),
+      ...(t.items || []).flatMap((i) => i.materiales || []),
+    ];
+    return todos.reduce((sum, m) => sum + (normMat(m.nombre).includes(n) ? (m.cantidad || 0) : 0), 0);
   };
 
   function exportarExcel() {

@@ -163,8 +163,9 @@ export default function PanelPage() {
     trabajos.forEach((t) => {
       [...(t.materiales || []), ...(t.items || []).flatMap((i) => i.materiales || [])].forEach((m) => {
         if (!m.nombre) return;
-        // Normalizar al nombre del catálogo si hay match
-        const catEntry = catalogo.find((c) => matchMatGlobal(c.nombre, m.nombre));
+        // Normalizar al nombre del catálogo si hay match (exacto primero, luego aproximado)
+        const catEntry = catalogo.find((c) => normStrGlobal(c.nombre) === normStrGlobal(m.nombre))
+          || catalogo.find((c) => matchMatGlobal(c.nombre, m.nombre));
         const nombreNorm = catEntry ? catEntry.nombre : m.nombre;
         const unidadNorm  = catEntry ? catEntry.unidad : (m.unidad || '');
         if (!mapa[nombreNorm]) mapa[nombreNorm] = { nombre: nombreNorm, unidad: unidadNorm, cantidad: 0 };

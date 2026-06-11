@@ -44,9 +44,20 @@ function matchMat(catalogName, jobName) {
 
 function initCantidades(catalogo, materiales) {
   const result = {};
+  const pool = [...(materiales || [])];
+  // Pase 1: matches exactos (se reservan primero para no ser robados por matches aproximados)
   catalogo.forEach((cat) => {
-    const match = (materiales || []).find((m) => matchMat(cat.nombre, m.nombre));
-    result[cat._id] = match ? String(match.cantidad) : '';
+    const idx = pool.findIndex((m) => normStr(m.nombre) === normStr(cat.nombre));
+    if (idx !== -1) {
+      result[cat._id] = String(pool[idx].cantidad);
+      pool.splice(idx, 1);
+    }
+  });
+  // Pase 2: matches aproximados sobre lo que quedó sin asignar
+  catalogo.forEach((cat) => {
+    if (result[cat._id] !== undefined) return;
+    const idx = pool.findIndex((m) => matchMat(cat.nombre, m.nombre));
+    result[cat._id] = idx !== -1 ? String(pool.splice(idx, 1)[0].cantidad) : '';
   });
   return result;
 }
