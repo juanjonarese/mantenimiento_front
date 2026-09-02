@@ -3,13 +3,27 @@ import { openDB } from 'idb';
 const DB_NAME = 'pintura-vial-db';
 const STORE = 'trabajos';
 
-const dbPromise = openDB(DB_NAME, 1, {
-  upgrade(db) {
-    if (!db.objectStoreNames.contains(STORE)) {
-      db.createObjectStore(STORE, { keyPath: 'id' });
-    }
-  },
-});
+// Abrimos sin fijar versión: los navegadores que usaron versiones anteriores de
+// la app tienen esta base en v2, y IndexedDB no permite abrirla pidiendo una
+// versión menor (falla con VersionError). Si la base que encontramos no tiene el
+// store, la reabrimos subiendo una versión para crearlo.
+const dbPromise = (async () => {
+  let db = await openDB(DB_NAME);
+
+  if (!db.objectStoreNames.contains(STORE)) {
+    const siguiente = db.version + 1;
+    db.close();
+    db = await openDB(DB_NAME, siguiente, {
+      upgrade(d) {
+        if (!d.objectStoreNames.contains(STORE)) {
+          d.createObjectStore(STORE, { keyPath: 'id' });
+        }
+      },
+    });
+  }
+
+  return db;
+})();
 
 export const obtenerTrabajos = async () => {
   const db = await dbPromise;
