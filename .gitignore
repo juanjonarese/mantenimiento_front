@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 
 *.env
+
+# Documentacion con credenciales de produccion — nunca versionar
+DOCUMENTACION-APP-CREA.md
