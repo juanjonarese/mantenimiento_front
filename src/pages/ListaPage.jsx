@@ -26,6 +26,7 @@ export default function ListaPage() {
     localStorage.getItem('rol') === 'cliente' ? (localStorage.getItem('clienteNombre') || '') : ''
   );
   const [filtroUsuario, setFiltroUsuario] = useState('');
+  const [orden, setOrden] = useState('desc'); // 'desc' = más reciente primero, 'asc' = más antiguo primero
   const [sincronizando, setSincronizando] = useState(false);
   const [cargando, setCargando] = useState(true);
   const [mostrarImportar, setMostrarImportar] = useState(false);
@@ -87,6 +88,9 @@ export default function ListaPage() {
     const coincideDesde = !filtroDesde || fecha >= new Date(`${filtroDesde}T00:00:00`);
     const coincideHasta = !filtroHasta || fecha <= new Date(`${filtroHasta}T23:59:59`);
     return coincideBusqueda && coincideEstado && coincideCertif && coincideCliente && coincideUsuario && coincideDesde && coincideHasta;
+  }).sort((a, b) => {
+    const diff = new Date(a.fechaCarga) - new Date(b.fechaCarga);
+    return orden === 'asc' ? diff : -diff;
   });
 
   const totalPaginas = Math.max(1, Math.ceil(filtrados.length / POR_PAGINA));
@@ -94,7 +98,7 @@ export default function ListaPage() {
   const paginados = filtrados.slice((paginaActual - 1) * POR_PAGINA, paginaActual * POR_PAGINA);
 
   // Resetear a página 1 cuando cambian los filtros
-  useEffect(() => { setPagina(1); }, [busqueda, filtroEstado, filtroCertif, filtroCliente, filtroUsuario, filtroDesde, filtroHasta]);
+  useEffect(() => { setPagina(1); }, [busqueda, filtroEstado, filtroCertif, filtroCliente, filtroUsuario, filtroDesde, filtroHasta, orden]);
 
   // Extrae la superficie de un tipo específico, soporta formato items[] y legacy
   const getSup = (t, tipo) => {
@@ -319,6 +323,16 @@ export default function ListaPage() {
               </button>
             </div>
           )}
+          <div className="col-auto">
+            <button
+              className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"
+              onClick={() => setOrden((o) => (o === 'desc' ? 'asc' : 'desc'))}
+              title={orden === 'desc' ? 'Más recientes primero (click para invertir)' : 'Más antiguos primero (click para invertir)'}
+            >
+              <i className={`bi bi-sort-${orden === 'desc' ? 'down' : 'up'}-alt`}></i>
+              <span>Fecha {orden === 'desc' ? '↓' : '↑'}</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -389,7 +403,9 @@ export default function ListaPage() {
                 <table className="table table-sm table-hover align-middle mb-0" style={{ fontSize: 13 }}>
                   <thead className="table-light">
                     <tr>
-                      <th>Fecha</th>
+                      <th role="button" onClick={() => setOrden((o) => (o === 'desc' ? 'asc' : 'desc'))} title="Click para invertir el orden">
+                        Fecha <i className={`bi bi-sort-${orden === 'desc' ? 'down' : 'up'}-alt`}></i>
+                      </th>
                       <th>Intersección</th>
                       {tiposConDatos.map((tipo) => <th key={tipo} className="text-end">{tipo} m²</th>)}
                       {!esCliente && <><th className="text-end">B.Termo</th><th className="text-end">B.Micro</th><th className="text-end">Imprim. l</th><th className="text-end">P.Acrílica l</th></>}
